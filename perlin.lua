@@ -95,8 +95,8 @@ local random_grad = random_grad_lua
 local random_grad3d = random_grad3d_fixed
 
 -- dot(dist(corner, point), grad)
-local function dot_grid_grad(seed, cx, cy, x, y)
-    local grad = random_grad(seed, cx, cy)
+local function dot_grid_grad(seed, cx, cy, x, y, loop)
+    local grad = random_grad(seed, loop.loopx(cx), loop.loopy(cy))
 
     local dx = x - cx
     local dy = y - cy
@@ -104,8 +104,8 @@ local function dot_grid_grad(seed, cx, cy, x, y)
     return (dx*grad.x + dy*grad.y)
 end
 
-local function dot_grid3d_grad(seed, cx, cy, cz, x, y, z)
-    local grad = random_grad3d(seed, cx, cy, cz)
+local function dot_grid3d_grad(seed, cx, cy, cz, x, y, z, loop)
+    local grad = random_grad3d(seed, loop.loopx(cx), loop.loopy(cy), loop.loopz(cz))
 
     local dx = x - cx
     local dy = y - cy
@@ -116,7 +116,9 @@ end
 
 local interpolate = utils.cerp
 
-local function perlin(seed, x, y)
+-- for convenience, perlin is given the same signature as perlin3d, the fourth arg is just unused
+local function perlin(seed, x, y, _, loop)
+
     -- get the corners for the gradient
     local cx = math.floor(x)
     local cx1 = cx+1
@@ -128,19 +130,19 @@ local function perlin(seed, x, y)
     local sy = y - cy
 
     -- top-left -> top-right
-    local n0 = dot_grid_grad(seed, cx, cy, x, y)
-    local n1 = dot_grid_grad(seed, cx1, cy, x, y)
+    local n0 = dot_grid_grad(seed, cx, cy, x, y, loop)
+    local n1 = dot_grid_grad(seed, cx1, cy, x, y, loop)
     local topdot = interpolate(n0, n1, sx)
 
     -- bottom-left -> bottom-right
-    n0 = dot_grid_grad(seed, cx, cy1, x, y)
-    n1 = dot_grid_grad(seed, cx1, cy1, x, y)
+    n0 = dot_grid_grad(seed, cx, cy1, x, y, loop)
+    n1 = dot_grid_grad(seed, cx1, cy1, x, y, loop)
     local botdot = interpolate(n0, n1, sx)
 
     return interpolate(topdot, botdot, sy)
 end
 
-local function perlin3d(seed, x, y, z)
+local function perlin3d(seed, x, y, z, loop)
 
     -- get the corners for the gradient
     local cx = math.floor(x)
@@ -156,26 +158,26 @@ local function perlin3d(seed, x, y, z)
     local sz = z - cz
 
     -- top-left
-    local n0 = dot_grid3d_grad(seed, cx, cy, cz, x, y, z)
+    local n0 = dot_grid3d_grad(seed, cx, cy, cz, x, y, z, loop)
     -- top-right
-    local n1 = dot_grid3d_grad(seed, cx1, cy, cz, x, y, z)
+    local n1 = dot_grid3d_grad(seed, cx1, cy, cz, x, y, z, loop)
     -- top-left back
-    local n2 = dot_grid3d_grad(seed, cx, cy, cz1, x, y, z)
+    local n2 = dot_grid3d_grad(seed, cx, cy, cz1, x, y, z, loop)
     -- top-right back
-    local n3 = dot_grid3d_grad(seed, cx1, cy, cz1, x, y, z)
+    local n3 = dot_grid3d_grad(seed, cx1, cy, cz1, x, y, z, loop)
     -- top-left -> top-right
     local topdot = interpolate(n0, n1, sx)
     local topbackdot = interpolate(n2, n3, sx)
     topdot = interpolate(topdot, topbackdot, sz)
 
     -- bot-left
-    n0 = dot_grid3d_grad(seed, cx, cy1, cz, x, y, z)
+    n0 = dot_grid3d_grad(seed, cx, cy1, cz, x, y, z, loop)
     -- bot-right
-    n1 = dot_grid3d_grad(seed, cx1, cy1, cz, x, y, z)
+    n1 = dot_grid3d_grad(seed, cx1, cy1, cz, x, y, z, loop)
     -- bot-left back
-    n2 = dot_grid3d_grad(seed, cx, cy1, cz1, x, y, z)
+    n2 = dot_grid3d_grad(seed, cx, cy1, cz1, x, y, z, loop)
     -- bot-right back
-    n3 = dot_grid3d_grad(seed, cx1, cy1, cz1, x, y, z)
+    n3 = dot_grid3d_grad(seed, cx1, cy1, cz1, x, y, z, loop)
     -- bot-left -> bot-right
     local botdot = interpolate(n0, n1, sx)
     local botbackdot = interpolate(n2, n3, sx)

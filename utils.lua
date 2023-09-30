@@ -48,10 +48,35 @@ local function color_grad_fixed(t, ...)
     return arg[cidx]
 end
 
+local function loop(v, from, diff)
+    return ((v - from) % diff) + from
+end
+
+local function id(v)
+    return v
+end
+
+-- stolen from: https://stackoverflow.com/a/27028488
+local function dump(o)
+    if type(o) == 'table' then
+       local s = '{ '
+       for k,v in pairs(o) do
+          if type(k) ~= 'number' then k = '"'..k..'"' end
+          s = s .. '['..k..'] = ' .. dump(v) .. ','
+       end
+       return s .. '} '
+    else
+       return tostring(o)
+    end
+ end
+
 return {
     round=round,
     lerp=lerp,
     cerp=cerp,
     color_grad=color_grad,
     color_grad_fixed=color_grad_fixed,
+    loop=loop,
+    id=id,
+    dump=dump
 }

@@ -40,9 +40,30 @@ local function perlin_dlog(parent, defs)
                 id="rate",
                 visible=dlog.data.threed
             }
+            dlog:modify{
+                id="loopz",
+                visible=dlog.data.loop and dlog.data.threed
+            }
         end }
-        :number{ id="frames", label="Frames to Animate", visible=defs.threed, text="1" }
-        :number{ id="rate", label="Movement Rate", visible=defs.threed, text="1" }
+        :number{ id="frames", label="Frames to Animate", visible=defs.threed, text=tostring(defs.frames) }
+        :number{ id="rate", label="Movement Rate", visible=defs.threed, text=tostring(defs.rate) }
+        :check{ id="loop", label="Loop / Tile", selected=defs.loop, onclick=function()
+            dlog:modify{
+                id="loopx",
+                visible=dlog.data.loop
+            }
+            dlog:modify{
+                id="loopy",
+                visible=dlog.data.loop
+            }
+            dlog:modify{
+                id="loopz",
+                visible=dlog.data.loop and dlog.data.threed
+            }
+        end }
+        :check{ id="loopx", label="Loop X", selected=defs.loopx, visible=defs.loop }
+        :check{ id="loopy", label="Loop Y", selected=defs.loopy, visible=defs.loop }
+        :check{ id="loopz", label="Loop Z", selected=defs.loopz, visible=(defs.loop and defs.threed) }
         :button{ id="ok", text="OK", focus=true }
         :button{ id="cancel", text="Cancel" }
         :show()
@@ -62,7 +83,14 @@ local method_default_map = {
         cellsize=8, -- size of each grid cell, the intersection of which is where the
                     -- gradient is computed
         fixed=true, -- only use the colors in the given range, otherwise interpolate between them
-        threed=false
+        threed=false,
+        frames=1,
+        rate=1,
+
+        loop=false,
+        loopx=false,
+        loopy=false,
+        loopz=false
     },
     Voronoi = { },
 }
@@ -174,6 +202,36 @@ local function do_noise(opts, mopts)
         local frames = mopts.threed and mopts.frames or 1
         local noisef = mopts.threed and perlin.perlin3d or perlin.perlin
 
+        local loop = {
+            loopx = utils.id,
+            loopy = utils.id,
+            loopz = utils.id
+        }
+
+        if mopts.loop then
+            if mopts.loopx then
+                loop.xfrom = 0
+                loop.xto = width/mopts.cellsize
+
+                local dxloop = loop.xto - loop.xfrom
+                loop.loopx = function(v) return utils.loop(v, loop.xfrom, dxloop) end
+            end
+            if mopts.loopy then
+                loop.yfrom = 0
+                loop.yto = height/mopts.cellsize
+
+                local dyloop = loop.yto - loop.yfrom
+                loop.loopy = function(v) return utils.loop(v, loop.yfrom, dyloop) end
+            end
+            if mopts.loopz then
+                loop.zfrom = 1
+                loop.zto = (frames*mopts.rate)/mopts.cellsize+1
+
+                local dzloop = loop.zto - loop.zfrom
+                loop.loopz = function(v) return utils.loop(v, loop.zfrom, dzloop) end
+            end
+        end
+
         for z=1,frames do
 
         -- if we don't already have a frame create it
@@ -187,7 +245,7 @@ local function do_noise(opts, mopts)
         for x=0,width do
             for y=0,height do
 
-                local val = noisef(opts.seed, x/mopts.cellsize, y/mopts.cellsize, (z*mopts.rate)/mopts.cellsize)
+                local val = noisef(opts.seed, x/mopts.cellsize, y/mopts.cellsize, (z*mopts.rate)/mopts.cellsize, loop)
                 val = val*0.5+0.5 -- normalize
 
                 local color_range = { app.bgColor, app.fgColor }
