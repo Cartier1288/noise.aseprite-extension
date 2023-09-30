@@ -26,7 +26,7 @@ local function color_grad(t, ...)
     -- app.alert("from: " .. tostring(from) .. ", to: " .. tostring(to))
 
     -- get adjusted t between the two color indices
-    local adj_t = (t*#arg) - from
+    local adj_t = (t*(#arg-1)) - from
 
     from = arg[from]
     to = arg[to]

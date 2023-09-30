@@ -29,11 +29,23 @@ local function perlin_dlog(parent, defs)
         title="Perlin Noise Options",
         parent=parent
     }
-    :number{ id="cellsize", label="Cell Size [0,\\infin]", text=tostring(defs.cellsize) }
-    :check{ id="fixed", label="Fixed Colors", selected=defs.fixed }
-    :button{ id="ok", text="OK", focus=true }
-    :button{ id="cancel", text="Cancel" }
-    :show()
+    dlog:number{ id="cellsize", label="Cell Size [0,\\infin]", text=tostring(defs.cellsize) }
+        :check{ id="fixed", label="Fixed Colors", selected=defs.fixed }
+        :check{ id="threed", label="3D Noise (Animate)", selected=defs.threed, onclick=function()
+            dlog:modify{
+                id="frames",
+                visible=dlog.data.threed
+            }
+            dlog:modify{
+                id="rate",
+                visible=dlog.data.threed
+            }
+        end }
+        :number{ id="frames", label="Frames to Animate", visible=defs.threed, text="1" }
+        :number{ id="rate", label="Movement Rate", visible=defs.threed, text="1" }
+        :button{ id="ok", text="OK", focus=true }
+        :button{ id="cancel", text="Cancel" }
+        :show()
 
     return dlog.data
 end
@@ -50,6 +62,7 @@ local method_default_map = {
         cellsize=8, -- size of each grid cell, the intersection of which is where the
                     -- gradient is computed
         fixed=true, -- only use the colors in the given range, otherwise interpolate between them
+        threed=false
     },
     Voronoi = { },
 }
@@ -158,10 +171,23 @@ local function do_noise(opts, mopts)
     local function do_perlin()
         layer.name = "Perlin Noise"
 
+        local frames = mopts.threed and mopts.frames or 1
+        local noisef = mopts.threed and perlin.perlin3d or perlin.perlin
+
+        for z=1,frames do
+
+        -- if we don't already have a frame create it
+        if z > #sprite.frames then
+            sprite:newFrame(z)
+        end
+
+        cel = sprite:newCel(layer, z)
+        image = cel.image
+
         for x=0,width do
             for y=0,height do
 
-                local val = perlin(opts.seed, x/mopts.cellsize, y/mopts.cellsize)
+                local val = noisef(opts.seed, x/mopts.cellsize, y/mopts.cellsize, (z*mopts.rate)/mopts.cellsize)
                 val = val*0.5+0.5 -- normalize
 
                 local color_range = { app.bgColor, app.fgColor }
@@ -185,6 +211,7 @@ local function do_noise(opts, mopts)
                 image:drawPixel(x, y, color)
             end
         end
+    end
     end
 
     local function do_voronoi()
