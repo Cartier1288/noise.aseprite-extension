@@ -13,6 +13,10 @@ local function cerp(p1, p2, t)
     return (p2 - p1) * (3.0 - t*2.0) * t*t + p1;
 end
 
+local function smootherstep(p1, p2, t)
+    return (p2 - p1) * ((t * (t*6 - 15) + 10) * t*t*t) + p1
+end
+
 local function color_grad(t, ...)
     local arg={...}
 
@@ -26,7 +30,7 @@ local function color_grad(t, ...)
     -- app.alert("from: " .. tostring(from) .. ", to: " .. tostring(to))
 
     -- get adjusted t between the two color indices
-    local adj_t = (t*(#arg-1)) - from
+    local adj_t = (t*(#arg-1)) - (from-1) -- adjust for +1 index :)
 
     from = arg[from]
     to = arg[to]
@@ -74,6 +78,7 @@ return {
     round=round,
     lerp=lerp,
     cerp=cerp,
+    smootherstep=smootherstep,
     color_grad=color_grad,
     color_grad_fixed=color_grad_fixed,
     loop=loop,

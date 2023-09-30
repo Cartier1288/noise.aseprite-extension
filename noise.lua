@@ -9,6 +9,12 @@ local function get_seed()
     return os.time()
 end
 
+-- todo:
+-- 1. add preview option
+-- 2. add gradient slider for the palette colors that are selected to bias results
+--      similar to photoshop, but where sliders determine the cutoff for each
+-- 3. actually add voronoi lol
+
 
 local function dots_dlog(parent, defs)
     local dlog = Dialog{
@@ -97,14 +103,8 @@ local method_default_map = {
 
 local function noise_dlog()
 
-    local def_pick_seed = true
-
     local dlog = Dialog("Apply Noise")
     local mopts = nil
-
-    -- todo: add animate option, to apply random over multiple cels
-    -- NOTE: to do animated perlin noise, can use a 3D perlin generator and then index over the 3rd
-    -- dimension over time
 
     dlog:check{ id="use_active_layer", label="Use Active Layer", selected=false }
         :number{ id="seed", label="Seed", text=tostring(get_seed()), decimals=0 }

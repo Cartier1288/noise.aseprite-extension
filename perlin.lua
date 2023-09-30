@@ -74,7 +74,7 @@ local function random_grad_native(seed, cx, cy)
     local w = 64
     local s = w/2
 
-    local a,b = cx,cy
+    local a,b = math.tointeger(cx),math.tointeger(cy)
     a = a*3284157443*seed; b = b ~ ((a<<s) | (a >> (w-s)))
     b = b*1911520717*seed; a = a ~ ((b<<s) | (b >> (w-s)))
     a = a*2048419325*seed;
@@ -91,7 +91,7 @@ end
 
 
 -- requires: random_gradient(cx, cy) == random_gradient(cx, cy) for the same seed
-local random_grad = random_grad_lua
+local random_grad = random_grad_native
 local random_grad3d = random_grad3d_fixed
 
 -- dot(dist(corner, point), grad)
@@ -114,7 +114,7 @@ local function dot_grid3d_grad(seed, cx, cy, cz, x, y, z, loop)
     return (dx*grad.x + dy*grad.y + dz*grad.z)
 end
 
-local interpolate = utils.cerp
+local interpolate = utils.smootherstep
 
 -- for convenience, perlin is given the same signature as perlin3d, the fourth arg is just unused
 local function perlin(seed, x, y, _, loop)
