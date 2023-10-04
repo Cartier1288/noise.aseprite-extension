@@ -1,6 +1,7 @@
 app = app -- stfu lsp
 Dialog = Dialog
 Point = Point
+Color = Color
 
 local perlin = require("perlin")
 local voronoi = require("voronoi")
@@ -149,12 +150,28 @@ local method_default_map = {
     },
 }
 
+local noise_defaults = {
+    use_active_layer = false,
+    lock_alpha = false,
+}
+
 local function noise_dlog()
 
     local dlog = Dialog("Apply Noise")
     local mopts = nil
 
-    dlog:check{ id="use_active_layer", label="Use Active Layer", selected=false }
+    local defs = noise_defaults
+
+    dlog:check{ id="use_active_layer", label="Use Active Layer", 
+                selected=defs.use_active_layer,
+                onclick=function()
+                    dlog:modify {
+                        id="lock_alpha",
+                        visible=dlog.data.use_active_layer
+                    }
+                end }
+        :check{ id="lock_alpha", label="Lock Alpha", 
+                visible=defs.use_active_layer, selected=defs.lock_alpha }
         :number{ id="seed", label="Seed", text=tostring(get_seed()), decimals=0 }
         :combobox{ id="method", label="Method",
             option="Dots",
@@ -209,6 +226,50 @@ local function do_noise(opts, mopts)
     local width = sprite.width
     local height = sprite.height
 
+    local alphas = {}
+    local do_lock_alpha = opts.use_active_layer and opts.lock_alpha
+    if do_lock_alpha then
+        local bounds = image.bounds
+        local left = cel.position.x
+        local right = left+bounds.w
+        local top = cel.position.y
+        local bottom = top+bounds.h
+
+        -- init everything to 0 to begin with
+        for x=0,width-1 do
+            alphas[x] = { }
+            for y=0,height-1 do
+                alphas[x][y] = 0
+            end
+        end
+
+        -- the actual image is at least as small as the cel, so assign each of its pixels based on
+        -- its bounds
+        for x=left,right-1 do
+            for y=top,bottom-1 do
+                alphas[x][y] = app.pixelColor.rgbaA(
+                    image:getPixel(x-left, y-top)
+                )
+            end
+        end
+
+    end
+
+    --print(utils.dump(alphas))
+
+    -- add alpha lock as a seperate pass for simplicity
+    local function lock_alpha(img)
+        if do_lock_alpha then
+            for it in img:pixels() do
+                local color = Color(it())
+                local alpha = alphas[it.x][it.y]
+                it(app.pixelColor.rgba(
+                    color.red, color.green, color.blue, alpha
+                ))
+            end
+        end
+    end
+
     -- let closures do the work for me :)
     local function do_dots()
         layer.name = "Dot Noise"
@@ -240,8 +301,9 @@ local function do_noise(opts, mopts)
 
                 end
             end
-
         end
+
+        lock_alpha(image)
     end
 
     local function do_perlin()
@@ -317,6 +379,8 @@ local function do_noise(opts, mopts)
                 image:drawPixel(x, y, color)
             end
         end
+
+        lock_alpha(image)
         end
     end
 
@@ -361,6 +425,8 @@ local function do_noise(opts, mopts)
                 image:drawPixel(x, y, color_range[graph[y*width + x]])
             end
         end
+
+        lock_alpha(image)
         end
     end
 
