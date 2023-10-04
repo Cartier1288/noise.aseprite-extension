@@ -72,7 +72,38 @@ local function dump(o)
     else
        return tostring(o)
     end
- end
+end
+
+local function set_default(table, defs)
+    local mt = { __index = function(key) return defs[key] end }
+    setmetatable(table, mt)
+end
+
+local function dist2(x1, x2, y1, y2)
+    local d1 = x1-y1
+    local d2 = x2-y2
+    return math.sqrt(d1*d1 + d2*d2)
+end
+
+-- Manhattan distance
+local function mh_dist2(x1, x2, y1, y2)
+    local d1 = x1-y1
+    local d2 = x2-y2
+    return math.abs(d1) + math.abs(d2)
+end
+
+local function centroid(points)
+    local x, y = 0, 0
+
+    for p=1,#points do
+        x = x + points[p][1]
+        y = y + points[p][2]
+    end
+
+    x, y = x / #points, y / #points
+
+    return { x, y }
+end
 
 return {
     round=round,
@@ -83,5 +114,9 @@ return {
     color_grad_fixed=color_grad_fixed,
     loop=loop,
     id=id,
-    dump=dump
+    dump=dump,
+    set_default=set_default,
+    dist2=dist2,
+    mh_dist2=mh_dist2,
+    centroid=centroid
 }

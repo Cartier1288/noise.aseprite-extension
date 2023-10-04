@@ -3,6 +3,7 @@ Dialog = Dialog
 Point = Point
 
 local perlin = require("perlin")
+local voronoi = require("voronoi")
 local utils = require("utils")
 
 local function get_seed()
@@ -77,10 +78,47 @@ local function perlin_dlog(parent, defs)
     return dlog.data
 end
 
+local function voronoi_dlog(parent, defs)
+    local dlog = Dialog{
+        title="Voronoi Noise Options",
+        parent=parent
+    }
+    dlog:number{ id="min_points", label="Min Points [1,\\infin]", text=tostring(defs.min_points) }
+        :number{ id="max_points", label="Max Points [Min Points,\\infin]", text=tostring(defs.max_points) }
+        :combobox{ id="distance_func", label="Distance Function",
+            option=defs.distance_func,
+            options={ "Euclidian", "Manhattan" }
+        }
+        :check{ id="relax", label="Relax Points", selected=defs.relax, onclick=function()
+            dlog:modify {
+                id="relax_steps",
+                visible=dlog.data.relax
+            }
+        end }
+        :number{ id="relax_steps", label="Relax Steps [0,\\infin]", text=tostring(defs.relax_steps) }
+        :check{ id="threed", label="3D (Animate)", selected=defs.threed, onclick=function()
+            dlog:modify{
+                id="frames",
+                visible=dlog.data.threed
+            }
+            dlog:modify{
+                id="movement",
+                visible=dlog.data.threed
+            }
+        end }
+        :number{ id="frames", label="Frames to Animate", visible=defs.threed, text=tostring(defs.frames) }
+        :number{ id="movement", label="Point Movement [0,\\infin]", visible=defs.threed, text=tostring(defs.movement) }
+        :button{ id="ok", text="OK", focus=true }
+        :button{ id="cancel", text="Cancel" }
+        :show()
+
+    return dlog.data
+end
+
 local method_dlog_map = {
     Dots = dots_dlog,
     Perlin = perlin_dlog,
-    Voronoi = dots_dlog,
+    Voronoi = voronoi_dlog,
 }
 
 local method_default_map = {
@@ -98,7 +136,17 @@ local method_default_map = {
         loopy=false,
         loopz=false
     },
-    Voronoi = { },
+    Voronoi = {
+        min_points = 20,
+        max_points = 25,
+        --distribution = "RANDOM", -- one of: { "RANDOM", "CELLS" }
+        distance_func = "Euclidian",
+        relax = true,
+        relax_steps = 5,
+        threed=false,
+        frames=1,
+        movement = 10 -- how much a point may move over length
+    },
 }
 
 local function noise_dlog()
@@ -269,10 +317,51 @@ local function do_noise(opts, mopts)
                 image:drawPixel(x, y, color)
             end
         end
-    end
+        end
     end
 
     local function do_voronoi()
+        layer.name = "Voronoi Graph"
+
+        local frames = mopts.threed and mopts.frames or 1
+
+        -- get color range
+        local color_range = { app.bgColor, app.fgColor }
+        if #(app.range.colors) > 1 then
+            local palette = sprite.palettes[1]
+            color_range = { }
+            for i = 1,#app.range.colors do
+                color_range[i] = palette:getColor(app.range.colors[i])
+            end
+        end
+
+        local graphs = voronoi.voronoi(opts.seed, width, height, frames, {
+            colors = #color_range,
+            points = { mopts.min_points, mopts.max_points },
+            distance_func = mopts.distance_func == "Euclidian" and utils.dist2 or utils.mh_dist2,
+            relax = mopts.relax,
+            relax_steps = mopts.relax_steps,
+            movement = mopts.movement
+        }, { })
+
+        -- if we don't already have a frame create it
+        for z=1,frames do
+
+        if z > #sprite.frames then
+            sprite:newFrame(z)
+        end
+
+        cel = sprite:newCel(layer, z)
+        image = cel.image
+
+        local graph = graphs[z]
+
+        for x=0,width-1 do
+            for y=0,height-1 do
+                image:drawPixel(x, y, color_range[graph[y*width + x]])
+            end
+        end
+        end
     end
 
     local noise_appliers = {
