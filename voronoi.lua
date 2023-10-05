@@ -7,7 +7,9 @@ local voronoi_opt_defaults = {
     distance_func = utils.dist2,
     relax = true,
     relax_steps = 5,
-    movement = 10 -- how much a point may move over length
+    loop = false,
+    movement = 10, -- how much a point may move over length
+    locations = 1,
 }
 
 local function find_nearest(x, y, points, dfunc)
@@ -58,6 +60,7 @@ local function voronoi(seed, width, height, length, options, loop)
 
     local points = {}
 
+    -- generate random starting points within a padded area of the total width,height
     do
         local pwidth = width * 0.8
         local pheight = height * 0.8
@@ -90,30 +93,53 @@ local function voronoi(seed, width, height, length, options, loop)
         pcolors[p] = math.random(options.colors)
     end
 
-    -- store the points that we start from, since points will be updated at each layer
-    local from_points = { }
-    for p=1, #points do from_points[p] = points[p] end
+    local starting_points = { }
+    for p=1, #points do starting_points[p] = points[p] end
 
-    local move2 = 2*options.movement
-    -- generate the points to be moved to over length
+    local from_points = { }
     local final_points = { }
-    for p=1, #points do
-        local from = points[p]
-        final_points[p] = {
-            from[1] + math.random() * move2 - options.movement,
-            from[2] + math.random() * move2 - options.movement
-        }
+    local move2 = 2*options.movement
+
+    local gen_gap = math.floor(length/options.locations)
+    local locations = 1
+
+    local function gen_points()
+        -- store the points that we start from, since points will be updated at each layer
+        for p=1, #points do from_points[p] = points[p] end
+
+        -- if we are looping and we are assigning the final location, just use the starting set of
+        -- points as the final points
+        if locations == options.locations and options.loop then
+            final_points = starting_points
+        else -- generate the points to be moved to over length
+            for p=1, #points do
+                local from = starting_points[p]
+                final_points[p] = {
+                    from[1] + math.random() * move2 - options.movement,
+                    from[2] + math.random() * move2 - options.movement
+                }
+            end
+        end
     end
+    gen_points()
 
     -- generate the actual voronoi images
     for layer=1,length do
         local img = {}
         img[width*height] = 0 -- pre-alloc
 
+        -- check if it's time to generate the next set of points
+        if layer > locations * gen_gap then
+            locations = locations + 1
+            gen_points()
+        end
+
         -- interpolate between the starting points and the end points
         local t = 0
         if length > 1 then
-            t = (1 / (length-1)) * layer + (1 / (-length + 1))
+            -- todo: handle one frame of pause when reaching a location...
+            local norm_layer = layer - (locations-1)*gen_gap
+            t = (1 / (gen_gap-1)) * norm_layer + (1 / (-gen_gap + 1))
         end
         for p=1,#points do
             local from = from_points[p]

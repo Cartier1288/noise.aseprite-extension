@@ -5,6 +5,8 @@ Color = Color
 
 local perlin = require("perlin")
 local voronoi = require("voronoi")
+local worley = require("worley")
+local uiworley = require("worley-ui")
 local utils = require("utils")
 
 local function get_seed()
@@ -98,17 +100,15 @@ local function voronoi_dlog(parent, defs)
         end }
         :number{ id="relax_steps", label="Relax Steps [0,\\infin]", text=tostring(defs.relax_steps) }
         :check{ id="threed", label="3D (Animate)", selected=defs.threed, onclick=function()
-            dlog:modify{
-                id="frames",
-                visible=dlog.data.threed
-            }
-            dlog:modify{
-                id="movement",
-                visible=dlog.data.threed
-            }
+            dlog:modify{ id="frames", visible=dlog.data.threed }
+            dlog:modify{ id="loop", visible=dlog.data.threed }
+            dlog:modify{ id="movement", visible=dlog.data.threed }
+            dlog:modify{ id="locations", visible=dlog.data.threed }
         end }
         :number{ id="frames", label="Frames to Animate", visible=defs.threed, text=tostring(defs.frames) }
+        :check{ id="loop", label="Loop Movement", visible=defs.threed, selected=defs.loop }
         :number{ id="movement", label="Point Movement [0,\\infin]", visible=defs.threed, text=tostring(defs.movement) }
+        :number{ id="locations", label="Locations [1,\\infin]", visible=defs.threed, text=tostring(defs.locations) }
         :button{ id="ok", text="OK", focus=true }
         :button{ id="cancel", text="Cancel" }
         :show()
@@ -120,6 +120,7 @@ local method_dlog_map = {
     Dots = dots_dlog,
     Perlin = perlin_dlog,
     Voronoi = voronoi_dlog,
+    Worley = uiworley.dlog
 }
 
 local method_default_map = {
@@ -145,9 +146,12 @@ local method_default_map = {
         relax = true,
         relax_steps = 5,
         threed=false,
+        loop=false,
         frames=1,
-        movement = 10 -- how much a point may move over length
+        movement=10, -- how much a point may move during animation
+        locations=1, -- how many times the point locations change
     },
+    Worley = uiworley.defs
 }
 
 local noise_defaults = {
@@ -175,7 +179,7 @@ local function noise_dlog()
         :number{ id="seed", label="Seed", text=tostring(get_seed()), decimals=0 }
         :combobox{ id="method", label="Method",
             option="Dots",
-            options={ "Dots", "Perlin", "Voronoi" }
+            options={ "Dots", "Perlin", "Voronoi", "Worley" }
         }
         :button{ id="pick_methodoptions", text="Method Options", onclick=function()
             local cmethod = dlog.data.method
@@ -253,6 +257,16 @@ local function do_noise(opts, mopts)
             end
         end
 
+    end
+
+    -- get color range
+    local color_range = { app.bgColor, app.fgColor }
+    if #(app.range.colors) > 1 then
+        local palette = sprite.palettes[1]
+        color_range = { }
+        for i = 1,#app.range.colors do
+            color_range[i] = palette:getColor(app.range.colors[i])
+        end
     end
 
     --print(utils.dump(alphas))
@@ -358,16 +372,6 @@ local function do_noise(opts, mopts)
                 local val = noisef(opts.seed, x/mopts.cellsize, y/mopts.cellsize, (z*mopts.rate)/mopts.cellsize, loop)
                 val = val*0.5+0.5 -- normalize
 
-                local color_range = { app.bgColor, app.fgColor }
-
-                if #(app.range.colors) > 1 then
-                    local palette = sprite.palettes[1]
-                    color_range = { }
-                    for i = 1,#app.range.colors do
-                        color_range[i] = palette:getColor(app.range.colors[i])
-                    end
-                end
-
                 local color = nil
 
                 if mopts.fixed then
@@ -389,23 +393,15 @@ local function do_noise(opts, mopts)
 
         local frames = mopts.threed and mopts.frames or 1
 
-        -- get color range
-        local color_range = { app.bgColor, app.fgColor }
-        if #(app.range.colors) > 1 then
-            local palette = sprite.palettes[1]
-            color_range = { }
-            for i = 1,#app.range.colors do
-                color_range[i] = palette:getColor(app.range.colors[i])
-            end
-        end
-
         local graphs = voronoi.voronoi(opts.seed, width, height, frames, {
             colors = #color_range,
             points = { mopts.min_points, mopts.max_points },
             distance_func = mopts.distance_func == "Euclidian" and utils.dist2 or utils.mh_dist2,
             relax = mopts.relax,
             relax_steps = mopts.relax_steps,
-            movement = mopts.movement
+            movement = mopts.movement,
+            locations = mopts.locations,
+            loop = mopts.loop
         }, { })
 
         -- if we don't already have a frame create it
@@ -430,10 +426,50 @@ local function do_noise(opts, mopts)
         end
     end
 
+    local function do_worley()
+        layer.name = "Worley Graph"
+
+        local frames = mopts.threed and mopts.frames or 1
+
+        local graphs = worley.worley(opts.seed, width, height, frames, {
+            colors = #color_range,
+            mean_points = mopts.mean_points,
+            n=mopts.n,
+            cellsize = mopts.cellsize,
+            distance_func = mopts.distance_func == "Euclidian" and utils.dist2 or utils.mh_dist2,
+            movement = mopts.movement,
+            locations = mopts.locations,
+            loop = mopts.loop
+        }, { })
+
+        -- if we don't already have a frame create it
+        for z=1,frames do
+
+        if z > #sprite.frames then
+            sprite:newFrame(z)
+        end
+
+        cel = sprite:newCel(layer, z)
+        image = cel.image
+
+        local graph = graphs[z]
+
+        for x=0,width-1 do
+            for y=0,height-1 do
+                local val = graph[y*width + x]
+                image:drawPixel(x, y, utils.color_grad(val/10, table.unpack(color_range)))
+            end
+        end
+
+        lock_alpha(image)
+        end
+    end
+
     local noise_appliers = {
         Dots = do_dots,
         Perlin = do_perlin,
-        Voronoi = do_voronoi
+        Voronoi = do_voronoi,
+        Worley = do_worley,
     }
 
     noise_appliers[opts.method](opts, mopts)

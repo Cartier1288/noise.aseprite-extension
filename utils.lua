@@ -17,6 +17,14 @@ local function smootherstep(p1, p2, t)
     return (p2 - p1) * ((t * (t*6 - 15) + 10) * t*t*t) + p1
 end
 
+local function clamp01(v)
+    return math.max(0, math.min(1, v))
+end
+
+local function clamp(min, max, v)
+    return math.max(min, math.min(max, v))
+end
+
 local function color_grad(t, ...)
     local arg={...}
 
@@ -25,7 +33,10 @@ local function color_grad(t, ...)
 
     -- remember indexing starts from 1 :) :) :)
     local from = math.floor(t * (#arg-1))+1
-    local to = from+1
+    local to = from -- if t == 1, then we need to make sure that we don't go out of bounds
+    if not (t == 1) then
+        to = from + 1
+    end
 
     -- app.alert("from: " .. tostring(from) .. ", to: " .. tostring(to))
 
@@ -75,7 +86,7 @@ local function dump(o)
 end
 
 local function set_default(table, defs)
-    local mt = { __index = function(key) return defs[key] end }
+    local mt = { __index = function(_, key) return defs[key] end }
     setmetatable(table, mt)
 end
 
@@ -105,18 +116,265 @@ local function centroid(points)
     return { x, y }
 end
 
+-- ensures that the random number isn't 0, as unlikely as that may be
+local function random_pos()
+    local x
+    repeat
+        x = math.random()
+    until not (x ==  0)
+    return x
+end
+
+local BINV_CUTOFF = 110
+
+-- translated directly from GNU GSL gsl_ran_binomial
+local function rbinom(p, n)
+    local ix = 0
+    local flipped = 0
+    local q, s, np
+
+    if n == 0 then
+        return 0
+    end
+
+    if p > 0.5 then
+        p = 1.0-p
+        flipped = 1
+    end
+
+    q = 1-p
+    s = p / q
+    np = n * p -- mean
+
+    --if np < 14 then -- small mean
+        local f0 = q^n
+
+        while true do
+            -- GSL source code mentioned the following:
+            -- this while loop will almost certainly loop _only once_, unless u=1 is within a few
+            -- epsilons of machine precision.
+
+            local f = f0
+            local u = math.random()
+
+            for i=0, BINV_CUTOFF do
+                ix = i
+
+                if u < f then
+                    goto Finish
+                end
+
+                u = u - f
+                f = f * (s * (n - ix) / (ix  + 1))
+            end
+        end
+    -- todo when I can work up the will to write the rest of this algo out
+    --else -- big mean, BTPE algorithm
+    --    local k
+    --    
+    --    local ffm = np + p
+    --    local m = math.floor(ffm)
+    --    local fm = m
+    --    local xm = fm  + 0.5
+    --    local npq = np * q
+
+    --    local p1 = math.floor(2.195*math.sqrt(npq) - 4.6*q) + 0.5
+
+    --    local xl = xm - p1
+    --    local xr = xm + p1
+
+    --    local c = 0.134 + 20.5 / (15.3 + fm)
+    --    local p2 = p1 * (1.0 + c + c)
+
+    --    local al = (ffm - xl) / (ffm - xl * p);
+    --    local lambda_l = al * (1.0 + 0.5 * al);
+    --    local ar = (xr - ffm) / (xr * q);
+    --    local lambda_r = ar * (1.0 + 0.5 * ar);
+    --    local p3 = p2 + c / lambda_l;
+    --    local p4 = p3 + c / lambda_r;
+
+    --    local var, accept
+    --    local u, v
+
+    --::TryAgain::
+    --    u = math.random() * p4
+    --    v = math.random()
+
+    --    if u <= p1 then
+    --        ix = math.floor(xm - p1*v + u)
+    --        goto Finish
+    --    elseif u <= p2 then
+    --        local x = xl + (u - p1) / c
+    --        v = v*c + 1 - math.abs(x - xm) / p1
+    --        if v > 1.0 or v <= 0.0 then
+    --            goto TryAgain
+    --        end
+    --        ix = math.floor(x)
+    --    elseif u <= p3 then
+    --        local ix = math.floor(xl + math.log(v)/lambda_l)
+    --        if ix < 0 then
+    --            goto TryAgain
+    --        end
+    --        v = v * ((u - p2) * lambda_l)
+    --    else
+    --        local ix = math.floor(xr - math.log(v)/lambda_r)
+    --        if ix > n then
+    --            goto TryAgain
+    --        end
+    --        v = v * ((u - p3) * lambda_r)
+    --    end
+    --end
+
+::Finish::
+    if flipped then
+        return n - ix
+    else
+        return ix
+    end
+end
+
+-- translated directly from GNU GSL gsl_ran_gamma_int
+local function rgamma_i(a)
+    if a < 12 then
+        local prod = 1
+
+        for i=0,a-1 do
+            prod = prod * random_pos()
+        end
+
+        return -math.log(prod)
+    else
+        local sqa, x, y, v
+        sqa = math.sqrt(2*a - 1)
+
+        repeat
+            repeat
+                y = math.tan(math.pi * math.random())
+                x = sqa*y + a - 1;
+            until x > 0
+            v = math.random()
+        until v <= (1 + y*y) * math.exp((a-1) * math.log(x / (a-1)) - sqa*y)
+
+        return x
+    end
+end
+
+local function rpoisson(mu)
+    local k = 0
+
+    -- todo this definitel does not distribute evenly ...
+    -- for large mu -- translated from GNU GSL gsl_ran_poisson
+    -- local rat = 7/8
+    -- while mu > 10 do
+    --     local m = math.floor(mu * rat)
+
+    --     local X = rgamma_i(m)
+
+    --     if X >= mu then
+    --         return k + rbinom(mu / X, m - 1)
+    --     else
+    --         k = k + m
+    --         mu = mu - X
+    --     end
+
+    -- end
+
+    -- for small mu -- inverse transform sampling
+    local x = 0
+    local p = math.exp(-mu)
+    local s = p
+
+    local u = math.random()
+
+    while u > s do
+        x = x + 1
+        p = p * (mu/x)
+        s = s + p
+    end
+
+    return x
+end
+
+local function rnpoisson(mu, n)
+    local rs = { }
+    for i=1,n do
+        rs[i] = rpoisson(mu)
+    end
+    return rs
+end
+
+local function less(x, y)
+    return x < y
+end
+
+local function greater(x, y)
+    return x > y
+end
+
+-- insertion sort where n is the max number of elements in arr
+local function insert_sortn(n, arr, val, cmp)
+    cmp = cmp and cmp or less
+
+    local insert_at = -1
+
+    for i=1,#arr do
+        if cmp(val, arr[i]) then
+            insert_at = i
+            break
+        end
+    end
+
+    -- just insert at the back of the array
+    if insert_at == -1 then
+        table.insert(arr, val)
+    else
+        table.insert(arr, insert_at, val)
+    end
+
+    -- pop end until we are in our limit
+    while #arr > n do
+        table.remove(arr)
+    end
+end
+
+local function nclosest(n, points, arr, x, y, dfunc)
+    for _,v in ipairs(points) do
+        insert_sortn(n, arr, dfunc(x, y, v[1], v[2]), less)
+    end
+end
+
 return {
     round=round,
+
+    -- interpolation
     lerp=lerp,
     cerp=cerp,
     smootherstep=smootherstep,
+
+    clamp01=clamp01,
+    clamp=clamp,
+
     color_grad=color_grad,
     color_grad_fixed=color_grad_fixed,
+
     loop=loop,
     id=id,
     dump=dump,
     set_default=set_default,
+
+    -- distance functions
     dist2=dist2,
     mh_dist2=mh_dist2,
-    centroid=centroid
+
+    centroid=centroid,
+    less=less,
+    greater=greater,
+    insert_sortn=insert_sortn,
+    nclosest=nclosest,
+
+    -- random number generators
+    rbinom=rbinom,
+    rgamma_i=rgamma_i,
+    rpoisson=rpoisson,
+    rnpoisson=rnpoisson
 }
