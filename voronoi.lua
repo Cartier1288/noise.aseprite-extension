@@ -9,6 +9,7 @@ local voronoi_opt_defaults = {
     relax_steps = 5,
     loop = false,
     movement = 10, -- how much a point may move over length
+    movement_func = utils.lerp, -- { "LERP", "CERP", "smootherstep"}
     locations = 1,
 }
 
@@ -123,6 +124,8 @@ local function voronoi(seed, width, height, length, options, loop)
     end
     gen_points()
 
+    local movef = options.movement_func
+
     -- generate the actual voronoi images
     for layer=1,length do
         local img = {}
@@ -145,10 +148,8 @@ local function voronoi(seed, width, height, length, options, loop)
             local from = from_points[p]
             local to = final_points[p]
             points[p] = {
-                -- todo consider adding option to allow different lerping between points for
-                -- smoother transition
-                utils.lerp(from[1], to[1], t),
-                utils.lerp(from[2], to[2], t)
+                movef(from[1], to[1], t),
+                movef(from[2], to[2], t)
             }
         end
 

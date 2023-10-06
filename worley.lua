@@ -163,6 +163,7 @@ local function worley(seed, width, height, length, options)
 
     local n = options.n
     local combfunc = options.combfunc
+    local clamp = options.clamp
     local graphs = { }
 
     local Fns = { }
@@ -190,9 +191,9 @@ local function worley(seed, width, height, length, options)
             -- get the value of the basis function
             Fns[i] = QFn(ltc, n, x, y, options)
 
-            -- todo add custom fall-off / clamp functions
+            -- todo add custom fall-off functions
             -- apply combination / modifiers of basis functions
-            Fns[i] = utils.clamp(0, 10, combfunc(n, Fns[i]))
+            Fns[i] = utils.clamp(0, clamp, combfunc(n, Fns[i]))/clamp
         end
     end
 

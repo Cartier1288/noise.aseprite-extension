@@ -7,6 +7,7 @@ local perlin = require("perlin")
 local voronoi = require("voronoi")
 local worley = require("worley")
 local uiworley = require("worley-ui")
+local uivoronoi = require("voronoi-ui")
 local utils = require("utils")
 
 local function get_seed()
@@ -81,45 +82,10 @@ local function perlin_dlog(parent, defs)
     return dlog.data
 end
 
-local function voronoi_dlog(parent, defs)
-    local dlog = Dialog{
-        title="Voronoi Noise Options",
-        parent=parent
-    }
-    dlog:number{ id="min_points", label="Min Points [1,\\infin]", text=tostring(defs.min_points) }
-        :number{ id="max_points", label="Max Points [Min Points,\\infin]", text=tostring(defs.max_points) }
-        :combobox{ id="distance_func", label="Distance Function",
-            option=defs.distance_func,
-            options={ "Euclidian", "Manhattan" }
-        }
-        :check{ id="relax", label="Relax Points", selected=defs.relax, onclick=function()
-            dlog:modify {
-                id="relax_steps",
-                visible=dlog.data.relax
-            }
-        end }
-        :number{ id="relax_steps", label="Relax Steps [0,\\infin]", text=tostring(defs.relax_steps) }
-        :check{ id="threed", label="3D (Animate)", selected=defs.threed, onclick=function()
-            dlog:modify{ id="frames", visible=dlog.data.threed }
-            dlog:modify{ id="loop", visible=dlog.data.threed }
-            dlog:modify{ id="movement", visible=dlog.data.threed }
-            dlog:modify{ id="locations", visible=dlog.data.threed }
-        end }
-        :number{ id="frames", label="Frames to Animate", visible=defs.threed, text=tostring(defs.frames) }
-        :check{ id="loop", label="Loop Movement", visible=defs.threed, selected=defs.loop }
-        :number{ id="movement", label="Point Movement [0,\\infin]", visible=defs.threed, text=tostring(defs.movement) }
-        :number{ id="locations", label="Locations [1,\\infin]", visible=defs.threed, text=tostring(defs.locations) }
-        :button{ id="ok", text="OK", focus=true }
-        :button{ id="cancel", text="Cancel" }
-        :show()
-
-    return dlog.data
-end
-
 local method_dlog_map = {
     Dots = dots_dlog,
     Perlin = perlin_dlog,
-    Voronoi = voronoi_dlog,
+    Voronoi = uivoronoi.dlog,
     Worley = uiworley.dlog
 }
 
@@ -138,19 +104,7 @@ local method_default_map = {
         loopy=false,
         loopz=false
     },
-    Voronoi = {
-        min_points = 20,
-        max_points = 25,
-        --distribution = "RANDOM", -- one of: { "RANDOM", "CELLS" }
-        distance_func = "Euclidian",
-        relax = true,
-        relax_steps = 5,
-        threed=false,
-        loop=false,
-        frames=1,
-        movement=10, -- how much a point may move during animation
-        locations=1, -- how many times the point locations change
-    },
+    Voronoi = uivoronoi.defs,
     Worley = uiworley.defs
 }
 
@@ -226,6 +180,16 @@ local function do_noise(opts, mopts)
     end
 
     local image = cel.image
+    local palette = sprite.palettes[1]
+
+    local get_color = function(int)
+        return Color(int)
+    end
+    if(image.colorMode == ColorMode.INDEXED) then
+        get_color = function(idx)
+            return palette:getColor(idx)
+        end
+    end
 
     local width = sprite.width
     local height = sprite.height
@@ -247,39 +211,61 @@ local function do_noise(opts, mopts)
             end
         end
 
-        -- the actual image is at least as small as the cel, so assign each of its pixels based on
-        -- its bounds
-        for x=left,right-1 do
-            for y=top,bottom-1 do
-                alphas[x][y] = app.pixelColor.rgbaA(
-                    image:getPixel(x-left, y-top)
-                )
+        print(bounds, left, right, top, bottom, width, height)
+
+        local get_alpha = function(int)
+            return app.pixelColor.rgbaA(int)
+        end
+        if(image.colorMode == ColorMode.INDEXED) then
+            get_alpha = function(idx)
+                if idx == image.spec.transparentColor then
+                    return 0
+                else
+                    return palette:getColor(idx).alpha
+                end
             end
         end
 
+        for it in image:pixels() do
+            -- the actual image is at least as small as the cel, so assign each of its pixels based on
+            -- its bounds and offset from the cel start
+            alphas[it.x + left][it.y + top] = get_alpha(it())
+        end
+
+    end
+
+    do
+    local total = 0
+    for i=1,#alphas do
+        total = total + utils.sum(alphas[i])
+    end
+    print(total)
     end
 
     -- get color range
     local color_range = { app.bgColor, app.fgColor }
     if #(app.range.colors) > 1 then
-        local palette = sprite.palettes[1]
         color_range = { }
         for i = 1,#app.range.colors do
             color_range[i] = palette:getColor(app.range.colors[i])
         end
     end
 
-    --print(utils.dump(alphas))
+    local clear_rect = Rectangle{x=0, y=0, width=1, height=1}
 
     -- add alpha lock as a seperate pass for simplicity
     local function lock_alpha(img)
         if do_lock_alpha then
             for it in img:pixels() do
-                local color = Color(it())
+                local color = get_color(it())
                 local alpha = alphas[it.x][it.y]
-                it(app.pixelColor.rgba(
-                    color.red, color.green, color.blue, alpha
-                ))
+                color = Color {
+                    red=color.red,
+                    green=color.green,
+                    blue=color.blue,
+                    alpha=alpha
+                }
+                image:drawPixel(it.x, it.y, color)
             end
         end
     end
@@ -450,8 +436,10 @@ local function do_noise(opts, mopts)
             mean_points = mopts.mean_points,
             n=mopts.n,
             cellsize = mopts.cellsize,
+            clamp = mopts.clamp,
             distance_func = mopts.distance_func == "Euclidian" and utils.dist2 or utils.mh_dist2,
             movement = mopts.movement,
+            movement_func = mopts.movement_func,
             locations = mopts.locations,
             combfunc = combfunc,
             loop = mopts.loop,
@@ -475,7 +463,7 @@ local function do_noise(opts, mopts)
         for x=0,width-1 do
             for y=0,height-1 do
                 local val = graph[y*width + x]
-                image:drawPixel(x, y, utils.color_grad(val/10, table.unpack(color_range)))
+                image:drawPixel(x, y, utils.color_grad(val, table.unpack(color_range)))
             end
         end
 

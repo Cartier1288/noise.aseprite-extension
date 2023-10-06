@@ -90,6 +90,28 @@ local function set_default(table, defs)
     setmetatable(table, mt)
 end
 
+local function get_keys(t)
+    local keys = { }
+
+    for k,_ in pairs(t) do
+        table.insert(keys, k)
+    end
+
+    return keys
+end
+
+local function sum(arr)
+    local total = 0
+    for _,v in ipairs(arr) do
+        total = total + v
+    end
+    return total
+end
+
+local function mean(arr)
+    return sum(arr) / #arr
+end
+
 local function dist2(x1, x2, y1, y2)
     local d1 = x1-y1
     local d2 = x2-y2
@@ -361,6 +383,10 @@ return {
     id=id,
     dump=dump,
     set_default=set_default,
+    get_keys=get_keys,
+
+    mean=mean,
+    sum=sum,
 
     -- distance functions
     dist2=dist2,

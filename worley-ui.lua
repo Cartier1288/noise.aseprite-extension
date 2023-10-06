@@ -5,6 +5,7 @@ local worley_defs = {
     use_custom_combination=false,
     combination="a[1]",
     distance_func = "Euclidian",
+    clamp = 10, -- distance clamp
     threed=false,
     loop=false,
     loopx=false,
@@ -32,6 +33,7 @@ local function worley_dlog(parent, defs)
             option=defs.distance_func,
             options={ "Euclidian", "Manhattan" }
         }
+        :number{ id="clamp", label="Clamp Distance (0,\\infin]", text=tostring(defs.clamp) }
         :check{ id="threed", label="3D (Animate)", selected=defs.threed, onclick=function()
             dlog:modify{ id="frames", visible=dlog.data.threed }
             dlog:modify{ id="loopz", visible=(dlog.data.threed and dlog.data.loop) }
