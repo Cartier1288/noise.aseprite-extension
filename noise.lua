@@ -431,6 +431,18 @@ local function do_noise(opts, mopts)
 
         local frames = mopts.threed and mopts.frames or 1
 
+        local combfunc = worley.nth
+
+        if mopts.use_custom_combination then
+            combfunc = worley.create_combination(mopts.combination)
+        end
+
+        local loop = {
+            x = width / mopts.cellsize,
+            y = height / mopts.cellsize,
+            z = utils.id
+        }
+
         local graphs = worley.worley(opts.seed, width, height, frames, {
             colors = #color_range,
             mean_points = mopts.mean_points,
@@ -439,8 +451,10 @@ local function do_noise(opts, mopts)
             distance_func = mopts.distance_func == "Euclidian" and utils.dist2 or utils.mh_dist2,
             movement = mopts.movement,
             locations = mopts.locations,
-            loop = mopts.loop
-        }, { })
+            combfunc = combfunc,
+            loop = mopts.loop,
+            loops = loop
+        })
 
         -- if we don't already have a frame create it
         for z=1,frames do

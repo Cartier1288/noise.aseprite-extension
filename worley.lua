@@ -69,7 +69,7 @@ local function Fn(ltc, n, x, y, options)
     return closest
 end
 
-local function mean(arr)
+local function mean(n, arr)
     local val = 0
     for i=1,#arr do
         val = val + arr[i]
@@ -77,24 +77,52 @@ local function mean(arr)
     return val / #arr
 end
 
-local function wdiff(arr)
+local function wdiff(n, arr)
     return arr[2] - arr[1]
 end
 
-local function worley(seed, width, height, length, options, loop)
+-- returns the nth element of an array, default combination
+local function nth(n, arr)
+    return arr[n]
+end
+
+-- str should fill in the followigng:
+-- return function(a) return (${str}) end
+local function create_combination(str)
+    local wrapped = string.format("return function(n, a) return (%s) end", str)
+    local func, err = load(wrapped)
+    if func then
+        local ok, mod = pcall(func)
+        if ok then
+            return mod
+        else
+            print("unexpected error when creating combination function for Worley method: ", mod)
+        end
+    else
+        print("invalid combination function passed to Worley method: ", err)
+    end
+end
+
+local function worley(seed, width, height, length, options)
     --local points = generate_points(seed, width, height, options.cellsize, options.mean_points)
 
+    local n = options.n
+    local combfunc = options.combfunc
     local graphs = { }
 
-    local n = options.n
-
     local Fns = { }
+
+    local freq = 0
+    if options.loop then
+        freq = options.loops.x
+    end
 
     local ltc = Lattice2:new{
         seed=seed,
         width=width,
         height=height,
         cs=options.cellsize,
+        freq=freq,
     }
 
     for x=0,width-1 do
@@ -104,7 +132,7 @@ local function worley(seed, width, height, length, options, loop)
     end
 
     for i=0,#Fns do
-        Fns[i] = utils.clamp(0, 10, Fns[i][n])
+        Fns[i] = utils.clamp(0, 10, combfunc(n, Fns[i]))
     end
 
     graphs[1] = Fns
@@ -114,4 +142,6 @@ end
 
 return {
     worley=worley,
+    create_combination=create_combination,
+    nth=nth
 }

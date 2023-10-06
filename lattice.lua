@@ -3,14 +3,18 @@ local utils = require("utils")
 Lattice2 = {
     width=10,
     height=10,
-    cs=1 -- cellsize
+    cs=1, -- cellsize
+    freq=0, -- > 0 means repeat every freq _cells_
 }
 
 function Lattice2:new(o)
     o = o or {}
     setmetatable(o, self)
     self.__index = self
-    self.seed = os.time()
+
+    o.seed = o.seed or os.time()
+    o.scaled_freq = o.freq * o.cs
+
     return o
 end
 
@@ -18,12 +22,22 @@ function Lattice2:seed(seed)
     self.seed = seed
 end
 
+function Lattice2:apply_freq(cx, cy)
+    if self.freq == 0 then
+        return cx, cy
+    else
+        return cx % self.scaled_freq, cy % self.scaled_freq
+    end
+end
+
 function Lattice2:get_corner(x, y)
-    return math.floor(x / self.cs) * self.cs, math.floor(y / self.cs) * self.cs
+    return
+        math.floor(x / self.cs) * self.cs,
+        math.floor(y / self.cs) * self.cs
 end
 
 function Lattice2:apply_ltc_seed(x, y)
-    local cx, cy = self:get_corner(x,y)
+    local cx, cy = self:apply_freq(self:get_corner(x,y))
     math.randomseed(cx + self.seed, cy + self.seed)
 end
 
