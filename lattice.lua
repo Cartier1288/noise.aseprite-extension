@@ -14,6 +14,8 @@ function Lattice2:new(o)
 
     o.seed = o.seed or os.time()
     o.scaled_freq = o.freq * o.cs
+    o.points = { }
+    o.pointset = { }
 
     return o
 end
@@ -92,24 +94,31 @@ function Lattice2:cell(x, y, gen)
 
     self:apply_ltc_seed(x,y)
 
-    local points = { }
+    --local hash = string.format("%d,%d", cx, cx)
 
-    -- todo
-    -- cache these points !
+    --if self.pointset[hash] ~= nil then
+    --    return self.points[hash]
+    --else
+        local points = { }
 
-    -- get number of points from a Poisson distribution
-    local n = gen()
+        -- get number of points from a Poisson distribution
+        local n = gen()
 
-    -- then randomly generate points within the cell, iterator pre-seeds each cell using unique 
-    -- hash from position and seed
-    for _=1,n do
-        table.insert(points, {
-            math.random()*self.cs + cx,
-            math.random()*self.cs + cy,
-        })
-    end
+        -- then randomly generate points within the cell, iterator pre-seeds each cell using unique 
+        -- hash from position and seed
+        for _=1,n do
+            table.insert(points, {
+                math.random()*self.cs + cx,
+                math.random()*self.cs + cy,
+            })
+        end
 
-    return { x = cx, y = cy, points = points }
+        local cell = { x = cx, y = cy, points = points }
+        --self.pointset[hash] = true
+        --self.points[hash] = cell
+
+        return cell
+    --end
 end
 
 function Lattice2:ncells()

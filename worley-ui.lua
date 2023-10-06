@@ -1,5 +1,5 @@
 local worley_defs = {
-    cellsize=32,
+    cellsize=16,
     mean_points=4, -- average number of points per cell
     n=1,
     use_custom_combination=false,

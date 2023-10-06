@@ -443,6 +443,8 @@ local function do_noise(opts, mopts)
             z = utils.id
         }
 
+        --local t = os.clock()
+
         local graphs = worley.worley(opts.seed, width, height, frames, {
             colors = #color_range,
             mean_points = mopts.mean_points,
@@ -455,6 +457,8 @@ local function do_noise(opts, mopts)
             loop = mopts.loop,
             loops = loop
         })
+
+        --print(string.format("elapsed time: %.2f\n", os.clock()-t))
 
         -- if we don't already have a frame create it
         for z=1,frames do
