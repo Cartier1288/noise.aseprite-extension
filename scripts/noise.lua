@@ -3,6 +3,8 @@ Dialog = Dialog
 Point = Point
 Color = Color
 
+package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
+
 local perlin = require("perlin")
 local voronoi = require("voronoi")
 local worley = require("worley")
@@ -234,14 +236,6 @@ local function do_noise(opts, mopts)
 
     end
 
-    do
-    local total = 0
-    for i=1,#alphas do
-        total = total + utils.sum(alphas[i])
-    end
-    print(total)
-    end
-
     -- get color range
     local color_range = { app.bgColor, app.fgColor }
     if #(app.range.colors) > 1 then
@@ -404,7 +398,7 @@ local function do_noise(opts, mopts)
 
         for x=0,width-1 do
             for y=0,height-1 do
-                image:drawPixel(x, y, color_range[graph[y*width + x]])
+                image:drawPixel(x, y, color_range[ graph[y*width + x] ])
             end
         end
 
@@ -509,3 +503,11 @@ return {
     end,
     noise_try = noise_try
 }
+
+--[[
+return {
+  noise_dlog = function() end,
+  noise = function() end,
+  noise_try = function() end,
+}
+--]]
