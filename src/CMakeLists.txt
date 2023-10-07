@@ -16,6 +16,8 @@ set_target_properties(${NOISE_LIB} PROPERTIES
 )
 #set_target_properties(${NOISE_LIB} PROPERTIES PUBLIC_HEADER ${MY_HEADERS})
 
+target_link_libraries(${NOISE_LIB} lua lauxlib lualib)
+
 target_include_directories(${NOISE_LIB} PRIVATE "${INCLUDE_PATH}")
 
 # external includes
@@ -24,4 +26,6 @@ target_include_directories(${NOISE_LIB} PRIVATE "${PROJECT_SOURCE_DIR}/external/
 # note we neither link nor build Lua here since it is already linked to Aseprite
 
 install(TARGETS ${NOISE_LIB}
-  LIBRARY DESTINATION "${INSTALL_DIR}")
+  LIBRARY DESTINATION "${INSTALL_DIR}"
+  RUNTIME DESTINATION "${INSTALL_DIR}"
+)

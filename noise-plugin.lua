@@ -18,6 +18,7 @@ function init(plugin)
       package.path = pwd .. "?.lua;" .. package.path
       package.cpath = pwd .. "bin/?.so;" .. package.cpath
       package.cpath = pwd .. "bin/?.a;" .. package.cpath
+      package.cpath = pwd .. "bin/?.dll;" .. package.cpath
 
       -- requiring here means that error messages that would have been on plugin startup can
       -- be recorded

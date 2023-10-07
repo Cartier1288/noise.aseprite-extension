@@ -22,5 +22,6 @@ include(AddGitSubmodule)
 
 #add_git_submodule(external/lua)
 
+add_subdirectory(external)
 add_subdirectory(src)
 

@@ -2,5 +2,3 @@
 bin
 build
 compile_commands.json
-external/*
-!external/placeholder
