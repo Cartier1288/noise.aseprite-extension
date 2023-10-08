@@ -1,5 +1,5 @@
 # build shared Lua library
-add_library(lua SHARED
+add_library(lua 
     lua/lapi.c
     lua/lcode.c
     lua/lctype.c
@@ -22,7 +22,7 @@ add_library(lua SHARED
     lua/lzio.c
     lua/ltests.c)
   add_library(lauxlib lua/lauxlib.c)
-  add_library(lualib
+  add_library(lualib 
     lua/lbaselib.c
     lua/lcorolib.c
     lua/ldblib.c
@@ -40,3 +40,7 @@ add_library(lua SHARED
   target_include_directories(lauxlib PUBLIC lua)
   target_include_directories(lualib PUBLIC lua)
   target_link_libraries(lauxlib lua)
+
+  set_target_properties(lua lauxlib lualib
+    PROPERTIES POSITION_INDEPENDENT_CODE ON
+  )

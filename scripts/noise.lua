@@ -4,6 +4,8 @@ Point = Point
 Color = Color
 
 package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
+local libnoise = require("libnoise")
+libnoise.print()
 
 local perlin = require("perlin")
 local voronoi = require("voronoi")

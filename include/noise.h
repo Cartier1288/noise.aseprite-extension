@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-int luaopen_mylib(lua_State* L);
+int luaopen_libnoise(lua_State* L);
 
 #ifdef __cplusplus
 }

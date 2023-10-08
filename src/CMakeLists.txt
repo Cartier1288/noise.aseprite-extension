@@ -16,7 +16,7 @@ set_target_properties(${NOISE_LIB} PROPERTIES
 )
 #set_target_properties(${NOISE_LIB} PROPERTIES PUBLIC_HEADER ${MY_HEADERS})
 
-target_link_libraries(${NOISE_LIB} lua lauxlib lualib)
+target_link_libraries(${NOISE_LIB} PRIVATE lauxlib lualib)
 
 target_include_directories(${NOISE_LIB} PRIVATE "${INCLUDE_PATH}")
 
