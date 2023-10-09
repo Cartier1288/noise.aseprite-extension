@@ -5,7 +5,8 @@ Color = Color
 
 package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
 local libnoise = require("libnoise")
-libnoise.print()
+print(libnoise.sum(1, 2, 3, 4, 5, 6))
+print(libnoise.sum({ 1, 2, 3, 4, 5, 6 }))
 
 local perlin = require("perlin")
 local voronoi = require("voronoi")
