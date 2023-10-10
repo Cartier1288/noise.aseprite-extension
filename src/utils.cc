@@ -1,6 +1,7 @@
 #include "utils.h"
 
 #include <iostream>
+#include <assert.h>
 
 void dump_stack(lua_State* L) {
     int top = lua_gettop(L);

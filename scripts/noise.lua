@@ -2,11 +2,17 @@ app = app -- stfu lsp
 Dialog = Dialog
 Point = Point
 Color = Color
+ldarray = ldarray
 
 package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
 local libnoise = require("libnoise")
 print(libnoise.sum(1, 2, 3, 4, 5, 6))
 print(libnoise.sum({ 1, 2, 3, 4, 5, 6 }))
+print(libnoise.DISFUNCS.EUCLIDIAN)
+local arr = ldarray(123);
+arr[1] = 0
+print(arr[1])
+print(#arr)
 
 local perlin = require("perlin")
 local voronoi = require("voronoi")
