@@ -1,7 +1,13 @@
 #pragma once
 
+#include "common.h"
+
+#include <vector>
 
 class Worley {
+public:
+  typedef std::vector<double> result_t;
+
 private:
   double width; // width: double -- width in pixels
   double height; // height: double -- height in pixels
@@ -18,4 +24,15 @@ private:
   // combfunc: the combination to apply on top 
   // loop: table -- where to apply looping, x, y, z
   // loops: table -- at what cel values to apply looping, x, y, z
+
+  size_t get_result_size() const;
+
+public:
+  // computes Worley noise given the current properties and fills a vector with them
+  result_t compute() const;
+
+  // computes Worley noise and fills the given array with them
+  void compute(double values[]) const;
+
+  static int compute(lua_State* L);
 };
