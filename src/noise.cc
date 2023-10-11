@@ -6,6 +6,7 @@
 #include "common.h"
 #include "worley.h"
 #include "larray.h"
+#include "worley.h"
 #include "math_utils.h"
 
 static int l_print(lua_State* L) {
@@ -110,6 +111,7 @@ int luaopen_libnoise(lua_State* L) {
 
   // push classes into the global namespace ...
   larray<double>::register_class(L);
+  Worley::register_class(L);
 
   return 1;
 }

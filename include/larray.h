@@ -71,5 +71,5 @@ void larray<T>::register_class(lua_State* L) {
     };
 
     REG_LUA_CLASS(L, larray<T>, larray_methods);
-    REG_LUA_CNSTR(L, larray<T>, larray<double>::lnew);
+    REG_LUA_CNSTR(L, larray<T>, larray<T>::lnew);
 }

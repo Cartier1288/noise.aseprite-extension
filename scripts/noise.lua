@@ -3,6 +3,7 @@ Dialog = Dialog
 Point = Point
 Color = Color
 ldarray = ldarray
+Worley = Worley
 
 package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
 local libnoise = require("libnoise")
@@ -13,6 +14,13 @@ local arr = ldarray(123);
 arr[1] = 0
 print(arr[1])
 print(#arr)
+
+local worl = Worley{
+    width = 192,
+    height = 192,
+};
+arr = worl:compute()
+print(arr[321])
 
 local perlin = require("perlin")
 local voronoi = require("voronoi")

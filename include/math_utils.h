@@ -42,3 +42,32 @@ enum DISTANCE_FUNC {
 extern const char* DISTANCE_FUNC_NAMES[];
 
 extern double (*distance_funcs[])(double,double,double,double,double,double);
+
+
+template<typename T>
+T lerp(T p1, T p2, T t) {
+    return (p2 - p1) * t + p1;
+}
+
+template<typename T>
+T cerp(T p1, T p2, T t) {
+    return (p2 - p1) * (3.0 - t*2.0) * t*t + p1;
+}
+
+template<typename T>
+T smootherstep(T p1, T p2, T t) {
+    return (p2 - p1) * ((t * (t*6 - 15) + 10) * t*t*t) + p1;
+}
+
+
+enum INTERPOLATE_FUNC {
+  LERP=0,
+  CERP,
+  SMOOTHERSTEP,
+
+  INTERPOLATE_LAST
+};
+
+extern const char* INTERPOLATE_FUNC_NAMES[];
+
+extern double (*interpolate_funcs[])(double,double,double);

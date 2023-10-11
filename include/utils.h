@@ -7,6 +7,9 @@
 #include <utility>
 
 
+#define LASSERT(assertion, msg) \
+    if(!(assertion)) { luaL_error(L, msg); return 0; }
+
 // prints stack from the bottom up
 void dump_stack(lua_State* L);
 
@@ -78,4 +81,12 @@ T* push_new_offset(lua_State* L, size_t offset, Args&&... args) {
     luaL_getmetatable(L, get_classname<T>()); \
     create_mt_getters_setters(L, get_classname<T>(), properties); \
     lua_pop(L, 1); \
+}
+
+template<typename T>
+void try_get_num_field(lua_State* L, T& store, int idx, int stack, const char* key) {
+    if(lua_getfield(L, idx, key) != LUA_TNIL) {
+        store = luaL_checknumber(L, stack);
+        lua_pop(L, 1);
+    }
 }
