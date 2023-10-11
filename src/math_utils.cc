@@ -8,7 +8,7 @@ const char* DISTANCE_FUNC_NAMES[] = {
     [MANHATTAN] = "MANHATTAN",
 };
 
-double (*distance_funcs[])(double,double,double,double,double,double) = {
+distance_func_t distance_funcs[] = {
   [EUCLIDIAN] = dist3<double>,
   [MANHATTAN] = mdist3<double>,
 };
@@ -20,7 +20,7 @@ const char* INTERPOLATE_FUNC_NAMES[] = {
     [SMOOTHERSTEP] = "SMOOTHERSTEP",
 };
 
-double (*interpolate_funcs[])(double,double,double) = {
+erp_func_t interpolate_funcs[] = {
   [LERP] = lerp<double>,
   [CERP] = cerp<double>,
   [SMOOTHERSTEP] = smootherstep<double>,

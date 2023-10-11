@@ -18,9 +18,11 @@ print(#arr)
 local worl = Worley{
     width = 192,
     height = 192,
+    length = 10,
+    mean_points = 4,
 };
 arr = worl:compute()
-print(arr[321])
+print(arr[1][321])
 
 local perlin = require("perlin")
 local voronoi = require("voronoi")
@@ -434,11 +436,14 @@ local function do_noise(opts, mopts)
             combfunc = worley.create_combination(mopts.combination)
         end
 
-        local loop = {
-            x = width / mopts.cellsize,
-            y = height / mopts.cellsize,
-            z = utils.id
-        }
+        local loop = { x = 0, y = 0, z = 0 };
+        if mopts.loop then
+            loop = {
+                x = width / mopts.cellsize,
+                y = height / mopts.cellsize,
+                z = 0
+            }
+        end
 
         --local t = os.clock()
 
@@ -454,7 +459,8 @@ local function do_noise(opts, mopts)
             locations = mopts.locations,
             combfunc = combfunc,
             loop = mopts.loop,
-            loops = loop
+            loops = loop,
+            seed = opts.seed,
         })
 
         --print(string.format("elapsed time: %.2f\n", os.clock()-t))
