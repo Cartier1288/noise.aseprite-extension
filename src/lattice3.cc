@@ -19,11 +19,14 @@ void lattice3::set_seed(unsigned int new_seed) {
 unsigned int lattice3::get_seed(double x, double y, double z) const {
     dvec3 corner = point_rep(get_corner(x + offset.x, y + offset.y, z + offset.z));
 
-    unsigned int cseed = (
+    size_t cseed = std::hash<dvec3>{}(corner);
+    hash_combine(cseed, seed);
+
+    /*unsigned int cseed = (
         (long)(corner.x * 18732251.0) +
         (long)(corner.y * 18735419.0) +
         (long)(corner.z * 18738667.0)) 
-        % 187753493L + seed;
+        % 187753493L + seed;*/
 
     return cseed;
 }

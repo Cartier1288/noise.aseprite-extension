@@ -20,6 +20,8 @@ local worl = Worley{
     height = 192,
     length = 10,
     mean_points = 4,
+    cellsize = 16,
+    n=3,
 };
 arr = worl:compute()
 print(arr[1][321])

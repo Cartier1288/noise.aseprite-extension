@@ -39,10 +39,10 @@ enum DISTANCE_FUNC {
   DISTANCE_LAST
 };
 
-extern const char* DISTANCE_FUNC_NAMES[];
+extern const char* DISTANCE_FUNC_NAMES[2];
 
 typedef double (*distance_func_t)(double,double,double,double,double,double);
-extern distance_func_t distance_funcs[];
+extern distance_func_t distance_funcs[2];
 
 
 template<typename T>
@@ -69,7 +69,7 @@ enum INTERPOLATE_FUNC {
   INTERPOLATE_LAST
 };
 
-extern const char* INTERPOLATE_FUNC_NAMES[];
+extern const char* INTERPOLATE_FUNC_NAMES[3];
 
 typedef double (*erp_func_t)(double,double,double);
-extern erp_func_t interpolate_funcs[];
+extern erp_func_t interpolate_funcs[3];
