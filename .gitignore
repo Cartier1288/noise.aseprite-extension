@@ -7,3 +7,5 @@ compile_commands.json
 
 *.aseprite-extension
 *.zip
+
+**/callgrind.out*

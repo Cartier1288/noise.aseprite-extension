@@ -3,7 +3,7 @@ local utils = require("utils")
 
 local width = 192
 local height = 192
-local frames = 12
+local frames = 6
 local mopts = {
     cellsize=16,
     mean_points=4, -- average number of points per cell
@@ -15,7 +15,7 @@ local mopts = {
     movement=10, -- how much a point may move during animation
     locations=1, -- how many times the point locations change
     loop = {
-        x = 192, y = 192, z = 12
+        x = width, y = height, z = frames
     },
 }
 
@@ -37,8 +37,8 @@ local W = Worley {
 
 print(W)
 
-print(string.format("elapsed init. time: %.2f ms\n", t()))
+print(string.format("elapsed init. time: %.2f ms", t()))
 
 local graphs = W:compute()
 
-print(string.format("elapsed total time: %.2f ms\n", t()))
+print(string.format("elapsed total time: %.2f ms", t()))

@@ -3,7 +3,7 @@ local worley = require("worley")
 
 local width = 192
 local height = 192
-local frames = 12
+local frames = 6
 local mopts = {
   cellsize=16,
   mean_points=4, -- average number of points per cell
@@ -17,7 +17,7 @@ local mopts = {
   locations=1, -- how many times the point locations change
   loop = true,
   loops = {
-      x = 192, y = 192, z = 12
+      x = width, y = height, z = frames
   },
 }
 
@@ -36,4 +36,4 @@ local graphs = worley.worley(123, width, height, frames, {
     loops = mopts.loops,
 })
 
-print(string.format("elapsed total time: %.2f ms\n", t()))
+print(string.format("elapsed total time: %.2f ms", t()))
