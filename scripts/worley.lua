@@ -166,8 +166,6 @@ local function worley(seed, width, height, length, options)
     local clamp = options.clamp
     local graphs = { }
 
-    local Fns = { }
-
     -- todo consider implementing separte x, y freq so that options.loops.x,y can be used separately
     local freq = 0
     if options.loop then
@@ -184,6 +182,10 @@ local function worley(seed, width, height, length, options)
         freq=freq,
     }
 
+    for z=1,length do
+
+    local Fns = { }
+
     for x=0,width-1 do
         for y=0,height-1 do
             local i = y*width + x
@@ -193,11 +195,12 @@ local function worley(seed, width, height, length, options)
 
             -- todo add custom fall-off functions
             -- apply combination / modifiers of basis functions
-            Fns[i] = utils.clamp(0, clamp, combfunc(n, Fns[i]))/clamp
+            --Fns[i] = utils.clamp(0, clamp, combfunc(n, Fns[i]))/clamp
         end
     end
 
-    graphs[1] = Fns
+    graphs[z] = Fns
+    end
 
     --print(utils.dump(ltc))
 
