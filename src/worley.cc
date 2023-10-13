@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <assert.h>
 #include <math.h>
 #include <cmath>
@@ -68,7 +69,7 @@ void Worley::compute_frame(double z, double values[]) const {
         for(double x = 0; x < width; x++) {
             size_t idx = scanned+(size_t)x;
             dvec3 cell = ltc.get_corner(x,y,z);
-            center.z = z;
+            center.x = x;
             distances_t dists;
 
             auto test_point = [&](dvec3 const& cell) {
@@ -150,6 +151,29 @@ Worley::result_t Worley::compute_frame(double z) const {
     return values;
 }
 
+
+std::string Worley::to_string() const {
+    std::stringstream str;
+
+    str << "Worley { ";
+ 
+    str << "seed: " << seed << ", ";
+    str << "width: " << width << ", ";
+    str << "height: " << height << ", ";
+    str << "length: " << length << ", ";
+    str << "mean_points: " << mean_points << ", ";
+    str << "n: " << n << ", ";
+    str << "cellsize: " << cellsize << ", ";
+    str << "distance_func: " << distance_func << ", ";
+    str << "movement: " << movement << ", ";
+    str << "movement_func: " << movement_func << ", ";
+    str << "freq: " << freq;
+
+    str << " }";
+
+    return str.str();
+}
+
 // could use try_get_num_field, but this is faster and less verbose :)
 #define GET_NUMBER(idx, field, key) \
     if(lua_getfield(L, idx, #key) != LUA_TNIL) { \
@@ -190,6 +214,7 @@ int Worley::lnew(lua_State* L) {
 
         GET_INTEGER(idx, seed, seed);
 
+        // get "loops" of form { x, y, z }
         if(lua_getfield(L, idx, "loops")) {
             bool is_table = lua_istable(L, -1);
             luaL_argexpected(L, is_table, idx, "expected table of form {x,y,z}");
@@ -219,6 +244,7 @@ int Worley::lnew(lua_State* L) {
 #undef GET_NUMBER
 
 
+// todo: test suite using standalone lua interpreter
 int Worley::compute(lua_State* L) {
     Worley* worley = get_obj<Worley>(L, 1);
 
@@ -263,9 +289,19 @@ int Worley::compute(lua_State* L) {
     return 1;
 }
 
+int Worley::to_string(lua_State* L) {
+    Worley* worley = get_obj<Worley>(L, 1);
+
+    // this is fine since Lua copies all pushed strings anyway
+    lua_pushstring(L, worley->to_string().c_str());
+
+    return 1;
+}
+
 void Worley::register_class(lua_State* L) {
     static const luaL_Reg methods[] = {
         { "compute", Worley::compute },
+        { "__tostring", Worley::to_string },
         { nullptr, nullptr }
     };
 

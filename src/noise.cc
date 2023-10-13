@@ -106,8 +106,15 @@ int luaopen_libnoise(lua_State* L) {
     lua_pushinteger(L, i);
     lua_setfield(L, -2, DISTANCE_FUNC_NAMES[i]);
   }
-
   lua_setfield(L, -2, "DISFUNCS");
+
+  // libnoise.ERPFUNCS
+  lua_newtable(L);
+  for(size_t i = LERP; i < INTERPOLATE_LAST; i++) {
+    lua_pushinteger(L, i);
+    lua_setfield(L, -2, INTERPOLATE_FUNC_NAMES[i]);
+  }
+  lua_setfield(L, -2, "ERPFUNCS");
 
   // push classes into the global namespace ...
   larray<double>::register_class(L);

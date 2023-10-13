@@ -6,7 +6,7 @@ project(
   LANGUAGES C CXX
 )
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -23,5 +23,6 @@ include(AddGitSubmodule)
 #add_git_submodule(external/lua)
 
 add_subdirectory(external)
+add_subdirectory(tests)
 add_subdirectory(src)
 

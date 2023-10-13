@@ -7,24 +7,6 @@ Worley = Worley
 
 package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
 local libnoise = require("libnoise")
-print(libnoise.sum(1, 2, 3, 4, 5, 6))
-print(libnoise.sum({ 1, 2, 3, 4, 5, 6 }))
-print(libnoise.DISFUNCS.EUCLIDIAN)
-local arr = ldarray(123);
-arr[1] = 0
-print(arr[1])
-print(#arr)
-
-local worl = Worley{
-    width = 192,
-    height = 192,
-    length = 10,
-    mean_points = 4,
-    cellsize = 16,
-    n=3,
-};
-arr = worl:compute()
-print(arr[1][321])
 
 local perlin = require("perlin")
 local voronoi = require("voronoi")
@@ -443,27 +425,53 @@ local function do_noise(opts, mopts)
             loop = {
                 x = width / mopts.cellsize,
                 y = height / mopts.cellsize,
-                z = 0
+                z = mopts.movement
             }
         end
 
         --local t = os.clock()
 
-        local graphs = worley.worley(opts.seed, width, height, frames, {
-            colors = #color_range,
-            mean_points = mopts.mean_points,
-            n=mopts.n,
-            cellsize = mopts.cellsize,
-            clamp = mopts.clamp,
-            distance_func = mopts.distance_func == "Euclidian" and utils.dist2 or utils.mh_dist2,
-            movement = mopts.movement,
-            movement_func = mopts.movement_func,
-            locations = mopts.locations,
-            combfunc = combfunc,
-            loop = mopts.loop,
-            loops = loop,
-            seed = opts.seed,
-        })
+        local graphs = nil
+
+        if Worley then
+            local W = Worley {
+                seed = opts.seed,
+                width = width,
+                height = height,
+                length = frames,
+                mean_points = mopts.mean_points,
+                n=mopts.n,
+                cellsize = mopts.cellsize,
+                distance_func = libnoise.DISFUNCS[mopts.distance_func],
+                movement = mopts.movement,
+                movement_func = libnoise.ERPFUNCS[mopts.movement_func],
+                loops = loop,
+            }
+
+            graphs = W:compute()
+
+            for _,graph in ipairs(graphs) do
+                for i=1,#graph do
+                    graph[i] = utils.clamp01(graph[i] / 10)
+                end
+            end
+        else
+            graphs = worley.worley(opts.seed, width, height, frames, {
+                colors = #color_range,
+                mean_points = mopts.mean_points,
+                n=mopts.n,
+                cellsize = mopts.cellsize,
+                clamp = mopts.clamp,
+                distance_func = mopts.distance_func == "Euclidian" and utils.dist2 or utils.mh_dist2,
+                movement = mopts.movement,
+                movement_func = mopts.movement_func,
+                locations = mopts.locations,
+                combfunc = combfunc,
+                loop = mopts.loop,
+                loops = loop,
+                seed = opts.seed,
+            })
+        end
 
         --print(string.format("elapsed time: %.2f\n", os.clock()-t))
 
@@ -481,7 +489,7 @@ local function do_noise(opts, mopts)
 
         for x=0,width-1 do
             for y=0,height-1 do
-                local val = graph[y*width + x]
+                local val = graph[y*width + x + 1]
                 image:drawPixel(x, y, utils.color_grad(val, table.unpack(color_range)))
             end
         end

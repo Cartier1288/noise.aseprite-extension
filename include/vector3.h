@@ -1,6 +1,7 @@
 #pragma once
 
 #include <random>
+#include <iostream>
 
 template<typename T>
 struct vector3 {
@@ -41,6 +42,15 @@ struct vector3 {
 
     bool operator==(const vector3& other) const {
         return x==other.x && y==other.y && z==other.z;
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, vector3 const& v) {
+        out << "< " 
+            << v.x << ","
+            << v.y << ","
+            << v.z
+            << " >";
+        return out;
     }
 };
 

@@ -365,6 +365,20 @@ local function nclosest(n, points, arr, x, y, dfunc)
     end
 end
 
+local function timer_start()
+    local t = os.clock();
+    return function()
+        return os.clock()-t
+    end
+end
+
+local function timer_start_ms()
+    local t = os.clock();
+    return function()
+        return (os.clock()-t) * 1000.0
+    end
+end
+
 return {
     round=round,
 
@@ -402,5 +416,8 @@ return {
     rbinom=rbinom,
     rgamma_i=rgamma_i,
     rpoisson=rpoisson,
-    rnpoisson=rnpoisson
+    rnpoisson=rnpoisson,
+
+    timer_start=timer_start,
+    timer_start_ms=timer_start_ms,
 }

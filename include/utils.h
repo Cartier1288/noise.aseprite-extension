@@ -6,6 +6,17 @@
 #include <typeinfo>
 #include <utility>
 
+// humbly borrowed from: https://artificial-mind.net/blog/2020/10/31/constexpr-for
+template<auto Start, auto End, auto Inc, class F>
+constexpr void constexpr_for(F&& f) {
+    if constexpr(Start < End) {
+        // apply the loop body
+        f(std::integral_constant<decltype(Start), Start>());
+        // then increment and call self recursively
+        constexpr_for<Start+Inc, End, Inc>(f);
+    }
+}
+
 
 #define LASSERT(assertion, msg) \
     if(!(assertion)) { luaL_error(L, msg); return 0; }

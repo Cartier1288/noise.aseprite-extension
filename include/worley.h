@@ -39,7 +39,10 @@ private:
 
 public:
 
+  std::string to_string() const;
+
   static int lnew(lua_State* L);
   static int compute(lua_State* L);
+  static int to_string(lua_State* L);
   static void register_class(lua_State* L);
 };
