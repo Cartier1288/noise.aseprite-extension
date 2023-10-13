@@ -41,9 +41,12 @@ add_library(lua
   target_include_directories(lualib PUBLIC lua)
   target_link_libraries(lauxlib lua)
 
-  target_compile_definitions(lua PUBLIC LUA_USE_DLOPEN)
-  target_compile_definitions(lauxlib PUBLIC LUA_USE_DLOPEN)
-  target_compile_definitions(lualib PUBLIC LUA_USE_DLOPEN)
+  if(WIN32)
+  else()
+    target_compile_definitions(lua PUBLIC LUA_USE_DLOPEN)
+    target_compile_definitions(lauxlib PUBLIC LUA_USE_DLOPEN)
+    target_compile_definitions(lualib PUBLIC LUA_USE_DLOPEN)
+  endif()
 
   set_target_properties(lua lauxlib lualib
     PROPERTIES POSITION_INDEPENDENT_CODE ON

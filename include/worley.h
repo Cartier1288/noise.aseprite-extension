@@ -7,6 +7,10 @@
 #include <unordered_map>
 #include <vector>
 
+// cap n at 9, technically can be greater but if 1 per cell, 9 is the max we can guarantee
+// this allows compile-time optimizations
+#define WORLEY_MAX_N 9
+
 class Worley {
 public:
   typedef std::vector<double> result_t;
@@ -18,7 +22,7 @@ private:
   int length = 1;    // length: int -- length in frames
   double mean_points =
       0;               // mean_points: double -- mean number of points per cel
-  double n = 1;        // n: double -- number of closest points to calculate
+  size_t n = 1;        // n: double -- number of closest points to calculate
   double cellsize = 1; // cellsize: double -- size of each cell in pixels
   DISTANCE_FUNC distance_func =
       EUCLIDIAN; // distance_func: string/enum or function
@@ -41,9 +45,11 @@ private:
 
   // computes Worley noise given the current properties and fills a vector with
   // them
+  template<size_t N>
   result_t compute_frame(cache_t& cache, double z) const;
 
   // computes Worley noise and fills the given array with them
+  template<size_t N>
   void compute_frame(cache_t& cache, double z, double values[]) const;
 
 public:

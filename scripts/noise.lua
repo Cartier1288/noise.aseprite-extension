@@ -414,13 +414,11 @@ local function do_noise(opts, mopts)
     local loop = { x = 0, y = 0, z = 0 };
     if mopts.loop then
       loop = {
-        x = width / mopts.cellsize,
-        y = height / mopts.cellsize,
+        x = width,
+        y = height,
         z = mopts.movement
       }
     end
-
-    --local t = os.clock()
 
     local graphs = nil
 
@@ -445,9 +443,28 @@ local function do_noise(opts, mopts)
 
       graphs = W:compute()
 
-      for _, graph in ipairs(graphs) do
-        for i = 1, #graph do
-          graph[i] = utils.clamp01(graph[i] / 10)
+      print(W)
+      print(#graphs[1])
+
+      local n = mopts.n
+      local clamp = mopts.clamp
+      for g=1,#graphs do
+        local graph = graphs[g]
+        local new_graph = { }
+        
+        for i=1,#graph,n do
+          local item = { }
+          for j=i,i+n-1 do
+            table.insert(item, graph[j])
+          end
+          table.insert(new_graph, item)
+        end
+
+        graphs[g] = new_graph
+        graph = new_graph
+
+        for i=1,#graph do
+          graph[i] = utils.clamp(0, clamp, combfunc(n, graph[i])) / clamp
         end
       end
     else
@@ -474,8 +491,6 @@ local function do_noise(opts, mopts)
         end
       end
     end
-
-    --print(string.format("elapsed time: %.2f\n", os.clock()-t))
 
     -- if we don't already have a frame create it
     for z = 1, frames do

@@ -4,6 +4,8 @@
 #include "lattice3.h"
 #include "utils.h"
 #include "vector3.h"
+#include "macro_utils.h"
+#include "isort.h"
 
 #include <assert.h>
 #include <cmath>
@@ -21,10 +23,9 @@ DECLARE_LUA_CLASS_NAMED(Worley, Worley);
 #define GET_IDX(x, y) ((y)*width + (x))
 
 typedef std::vector<dvec3> points_t;
-typedef std::set<double> distances_t;
 typedef std::unordered_map<dvec3, points_t> cache_t;
 
-size_t Worley::get_result_size() const { return width * height; }
+size_t Worley::get_result_size() const { return width * height * n; }
 
 static unsigned int gen_points(unsigned int seed, double mean, double min,
                                double max) {
@@ -33,18 +34,17 @@ static unsigned int gen_points(unsigned int seed, double mean, double min,
   return d(gen);
 }
 
-static inline void calc_dists(size_t n, distance_func_t dist,
-                              distances_t& dists, dvec3& center,
+template<size_t N>
+static inline void calc_dists(distance_func_t dist,
+                              isort<double, N>& dists, dvec3& center,
                               points_t& points) {
   for (dvec3 const& v : points) {
     double d = dist(v.x, v.y, v.z, center.x, center.y, center.z);
     dists.insert(d);
   }
-  // cap the size of distances
-  /*while(dists.size() > n)
-      dists.erase(std::prev(dists.end()));*/
 }
 
+template<size_t N>
 void Worley::compute_frame(cache_t& cache, double z, double values[]) const {
   /* initialize random distributions  */
   std::mt19937 gen;
@@ -65,7 +65,7 @@ void Worley::compute_frame(cache_t& cache, double z, double values[]) const {
       size_t idx = scanned + (size_t)x;
       dvec3 cell = ltc.get_corner(x, y, z);
       center.x = x;
-      distances_t dists;
+      isort<double, N> dists;
 
       auto test_point = [&](dvec3 const& cell) {
         if (!cache.count(cell)) { // generate points, since we couldn't find
@@ -85,7 +85,7 @@ void Worley::compute_frame(cache_t& cache, double z, double values[]) const {
           }
         }
 
-        calc_dists(n, dist, dists, center, cache[cell]);
+        calc_dists<N>(dist, dists, center, cache[cell]);
       };
 
       double zto = cell.z + cellsize;
@@ -131,15 +131,19 @@ void Worley::compute_frame(cache_t& cache, double z, double values[]) const {
       test_point(cell);
       */
 
-      values[idx] = *dists.begin();
+      auto& vals = dists.get_values();
+      constexpr_for<0, N, 1>([&](auto i) {
+        values[idx*N+i] = vals[i];
+      });
     }
   }
 }
 
+template<size_t N>
 Worley::result_t Worley::compute_frame(cache_t& cache, double z) const {
   result_t values(get_result_size());
 
-  compute_frame(cache, z, values.data());
+  compute_frame<N>(cache, z, values.data());
 
   return values;
 }
@@ -198,7 +202,7 @@ int Worley::lnew(lua_State* L) {
     GET_INTEGER(idx, length, length);
 
     GET_NUMBER(idx, mean_points, mean_points);
-    GET_NUMBER(idx, n, n);
+    GET_INTEGER(idx, n, n);
     GET_NUMBER(idx, cellsize, cellsize);
     GET_ENUM(idx, DISTANCE_FUNC, DISTANCE_LAST, distance_func, distance_func);
 
@@ -237,7 +241,12 @@ int Worley::lnew(lua_State* L) {
 #undef GET_INTEGER
 #undef GET_NUMBER
 
-// todo: test suite using standalone lua interpreter
+#define N_CASE(i, _) \
+  case i: { \
+      worley->compute_frame<i>(cache, z, arr->values); \
+      break; \
+  }
+
 int Worley::compute(lua_State* L) {
   Worley* worley = get_obj<Worley>(L, 1);
 
@@ -271,7 +280,17 @@ int Worley::compute(lua_State* L) {
             "unexpected error, array size differs from Worley");
 
     // compute directly on top of the ldarray values
-    worley->compute_frame(cache, z, arr->values);
+    switch(worley->n) {
+        // TODO: if WORLEY_MAX_N is ever set > 9, then macro_utils will need to be expanded to
+        // actually account for more "recursion"
+        EVAL(REPEAT(WORLEY_MAX_N, N_CASE, ~))
+        default:
+            std::string err = 
+                  std::string("unsupported Worley `n` given, 0 < n <= ") 
+                + std::to_string(WORLEY_MAX_N);
+            luaL_error(L, err.c_str());
+            return 0;
+    }
 
     lua_seti(L, -2, frame + 1);
 
