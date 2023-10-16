@@ -1,3 +1,10 @@
+local utils = require("utils")
+local movement_funcs = {
+    LERP = utils.lerp,
+    CERP = utils.cerp,
+    smootherstep = utils.smootherstep
+}
+
 local worley_defs = {
     cellsize=16,
     mean_points=4, -- average number of points per cell
@@ -12,8 +19,8 @@ local worley_defs = {
     loopy=false,
     loopz=false,
     frames=1,
-    movement=10, -- how much a point may move during animation
-    locations=1, -- how many times the point locations change
+    movement=16, -- how much a point may move during animation
+    movement_func = "LERP", -- { "LERP", "CERP", "smootherstep"}
 }
 
 local function worley_dlog(parent, defs)
@@ -38,11 +45,15 @@ local function worley_dlog(parent, defs)
             dlog:modify{ id="frames", visible=dlog.data.threed }
             dlog:modify{ id="loopz", visible=(dlog.data.threed and dlog.data.loop) }
             dlog:modify{ id="movement", visible=dlog.data.threed }
+            dlog:modify{ id="movement_func", visible=dlog.data.threed }
             dlog:modify{ id="locations", visible=dlog.data.threed }
         end }
         :number{ id="frames", label="Frames to Animate", visible=defs.threed, text=tostring(defs.frames) }
         :number{ id="movement", label="Point Movement [0,\\infin]", visible=defs.threed, text=tostring(defs.movement) }
-        :number{ id="locations", label="Locations [1,\\infin]", visible=defs.threed, text=tostring(defs.locations) }
+        :combobox{ id="movement_func", label="Movement Function", visible=defs.threed,
+            option=defs.movement_func,
+            options=utils.get_keys(movement_funcs)
+        }
         :check{ id="loop", label="Loop / Tile", selected=defs.loop, onclick=function()
             dlog:modify{ id="loopx", visible=dlog.data.loop }
             dlog:modify{ id="loopy", visible=dlog.data.loop }

@@ -4,7 +4,7 @@ local utils = require("utils")
 local movement_funcs = {
     LERP = utils.lerp,
     CERP = utils.cerp,
-    smootherstep = utils.smootherstep
+    Smootherstep = utils.smootherstep
 }
 
 local voronoi_defs = {
@@ -18,7 +18,7 @@ local voronoi_defs = {
     loop=false,
     frames=1,
     movement=10, -- how much a point may move during animation
-    movement_func = "LERP", -- { "LERP", "CERP", "smootherstep"}
+    movement_func = "LERP", -- { "LERP", "CERP", "Smootherstep"}
     locations=1, -- how many times the point locations change
 }
 

@@ -35,11 +35,11 @@ static unsigned int gen_points(unsigned int seed, double mean, double min,
 }
 
 template<size_t N>
-static inline void calc_dists(distance_func_t dist,
+static inline void calc_dists(distance_func_t distf,
                               isort<double, N>& dists, dvec3& center,
                               points_t& points) {
   for (dvec3 const& v : points) {
-    double d = dist(v.x, v.y, v.z, center.x, center.y, center.z);
+    double d = distf(v.x, v.y, v.z, center.x, center.y, center.z);
     dists.insert(d);
   }
 }
@@ -49,12 +49,13 @@ void Worley::compute_frame(cache_t& cache, double z, double values[]) const {
   /* initialize random distributions  */
   std::mt19937 gen;
   std::poisson_distribution<> d(mean_points);
+  // dist used to generate x,y,z offset inside of a cell
   std::uniform_real_distribution<> u(0.0, cellsize);
 
   lattice3 ltc(cellsize, freq);
   ltc.set_seed(seed);
 
-  distance_func_t dist = distance_funcs[distance_func];
+  distance_func_t distf = distance_funcs[distance_func];
 
   dvec3 center{0, 0, z};
   for (double y = 0; y < height; y++) {
@@ -67,25 +68,30 @@ void Worley::compute_frame(cache_t& cache, double z, double values[]) const {
       center.x = x;
       isort<double, N> dists;
 
+      // test point does two things: it caches points assigned to each lattice cell, and then it
+      // calculates the distance between pixel x,y,z and the nearest points
       auto test_point = [&](dvec3 const& cell) {
         if (!cache.count(cell)) { // generate points, since we couldn't find
                                   // them in the cache
           cache[cell] = points_t{};
           points_t& points = cache[cell];
 
-          auto grid_seed = ltc.get_seed(x, y, z);
-          gen.seed(grid_seed);
-          size_t npoints = d(gen);
+          auto grid_seed = ltc.get_seed(cell.x, cell.y, cell.z);
+          gen.seed(grid_seed); // set seed using lattice
+          d.reset(); u.reset();
+
+          size_t npoints = d(gen); // generate # of points using poisson
 
           points.reserve(npoints);
 
           for (size_t i = 0; i < npoints; i++) {
+            // uniformly generate coordinates for each of n points
             points.push_back(
                 dvec3(u(gen) + cell.x, u(gen) + cell.y, u(gen) + cell.z));
           }
         }
 
-        calc_dists<N>(dist, dists, center, cache[cell]);
+        calc_dists<N>(distf, dists, center, cache[cell]);
       };
 
       double zto = cell.z + cellsize;
@@ -296,7 +302,7 @@ int Worley::compute(lua_State* L) {
 
     // move further in
     t += t_inc;
-    z += mfun(0.0, worley->movement, t);
+    z = mfun(0.0, worley->movement, t);
   }
 
   // return ldarray[]

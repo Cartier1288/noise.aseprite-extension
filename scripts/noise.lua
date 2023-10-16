@@ -214,8 +214,6 @@ local function do_noise(opts, mopts)
       end
     end
 
-    print(bounds, left, right, top, bottom, width, height)
-
     local get_alpha = function(int)
       return app.pixelColor.rgbaA(int)
     end
@@ -414,9 +412,9 @@ local function do_noise(opts, mopts)
     local loop = { x = 0, y = 0, z = 0 };
     if mopts.loop then
       loop = {
-        x = width,
-        y = height,
-        z = mopts.movement
+        x = width/mopts.cellsize,
+        y = height/mopts.cellsize,
+        z = mopts.movement/mopts.cellsize
       }
     end
 
@@ -443,8 +441,7 @@ local function do_noise(opts, mopts)
 
       graphs = W:compute()
 
-      print(W)
-      print(#graphs[1])
+      --print(W)
 
       local n = mopts.n
       local clamp = mopts.clamp

@@ -4,6 +4,10 @@
 
 #include <random>
 
+// TODO: consider making latices generic, and able to pass in a type for their cache. e.g.,
+// std::unordered_map<dvec3, T> cache.
+// having the caches in the lattice itself feels more appropriate.
+
 class lattice3 {
     dvec3 offset;
 

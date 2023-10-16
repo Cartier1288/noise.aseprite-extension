@@ -60,6 +60,11 @@ T smootherstep(T p1, T p2, T t) {
     return (p2 - p1) * ((t * (t*6 - 15) + 10) * t*t*t) + p1;
 }
 
+template<typename T>
+T pmod(T a, T q) {
+    T n = floor(a/q);
+    return a - n*q;
+}
 
 enum INTERPOLATE_FUNC {
   LERP=0,

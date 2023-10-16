@@ -1,5 +1,7 @@
 #include "lattice3.h"
 
+#include "math_utils.h"
+
 #include <time.h>
 #include <math.h>
 #include <cmath>
@@ -49,16 +51,16 @@ dvec3 lattice3::get_corner(const dvec3& v) const {
 
 dvec3 lattice3::point_rep(double x, double y, double z) const {
     return dvec3(
-        freq.x == 0 ? x : std::fmod(x, scaled_freq.x),
-        freq.y == 0 ? y : std::fmod(y, scaled_freq.y),
-        freq.z == 0 ? z : std::fmod(z, scaled_freq.z)
+        freq.x == 0 ? x : pmod(x, scaled_freq.x),
+        freq.y == 0 ? y : pmod(y, scaled_freq.y),
+        freq.z == 0 ? z : pmod(z, scaled_freq.z)
     );
 }
 
 dvec3 lattice3::point_rep(const dvec3& v) const {
     return dvec3(
-        freq.x == 0 ? v.x : std::fmod(v.x, scaled_freq.x),
-        freq.y == 0 ? v.y : std::fmod(v.y, scaled_freq.y),
-        freq.z == 0 ? v.z : std::fmod(v.z, scaled_freq.z)
+        freq.x == 0 ? v.x : pmod(v.x, scaled_freq.x),
+        freq.y == 0 ? v.y : pmod(v.y, scaled_freq.y),
+        freq.z == 0 ? v.z : pmod(v.z, scaled_freq.z)
     );
 }

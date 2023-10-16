@@ -4,18 +4,20 @@ local utils = require("utils")
 local width = 192
 local height = 192
 local frames = 6
+local cellsize=16
+local movement=16
 local mopts = {
-    cellsize=16,
+    cellsize=cellsize,
     mean_points=4, -- average number of points per cell
     n=2,
     use_custom_combination=false,
     combination="a[1]",
     distance_func = "Euclidian",
     frames=1,
-    movement=10, -- how much a point may move during animation
+    movement=movement, -- how much a point may move during animation
     locations=1, -- how many times the point locations change
     loop = {
-        x = width, y = height, z = 10
+        x = width/cellsize, y = height/cellsize, z = movement/cellsize
     },
 }
 
@@ -42,9 +44,9 @@ print(string.format("elapsed init. time: %.2f ms", t()))
 local graphs = W:compute()
 
 -- sample some points
-for i=1,8 do
-    print(graphs[1][2^i-1])
-    print(graphs[1][2^i])
-end
+--for i=1,8 do
+--    print(graphs[1][2^i-1])
+--    print(graphs[1][2^i])
+--end
 
 print(string.format("elapsed total time: %.2f ms", t()))
