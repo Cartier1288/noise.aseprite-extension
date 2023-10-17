@@ -20,7 +20,7 @@ local worley_defs = {
     loopz=false,
     frames=1,
     movement=16, -- how much a point may move during animation
-    movement_func = "LERP", -- { "LERP", "CERP", "smootherstep"}
+    movement_func = "LERP", -- { "LERP", "CERP", "Smootherstep"}
 }
 
 local function worley_dlog(parent, defs)
@@ -46,10 +46,9 @@ local function worley_dlog(parent, defs)
             dlog:modify{ id="loopz", visible=(dlog.data.threed and dlog.data.loop) }
             dlog:modify{ id="movement", visible=dlog.data.threed }
             dlog:modify{ id="movement_func", visible=dlog.data.threed }
-            dlog:modify{ id="locations", visible=dlog.data.threed }
         end }
         :number{ id="frames", label="Frames to Animate", visible=defs.threed, text=tostring(defs.frames) }
-        :number{ id="movement", label="Point Movement [0,\\infin]", visible=defs.threed, text=tostring(defs.movement) }
+        :number{ id="movement", label="Z Movement [0,\\infin]", visible=defs.threed, text=tostring(defs.movement) }
         :combobox{ id="movement_func", label="Movement Function", visible=defs.threed,
             option=defs.movement_func,
             options=utils.get_keys(movement_funcs)

@@ -42,6 +42,8 @@ add_library(lua
   target_link_libraries(lauxlib lua)
 
   if(WIN32)
+    # interestingly, dynamic linking seems to just work on Windows, even without the compile
+    # definitions
   else()
     target_compile_definitions(lua PUBLIC LUA_USE_DLOPEN)
     target_compile_definitions(lauxlib PUBLIC LUA_USE_DLOPEN)

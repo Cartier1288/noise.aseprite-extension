@@ -6,14 +6,16 @@ ldarray = ldarray
 Worley = Worley
 
 package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
-local libnoise = require("libnoise")
+
+local utils = require("utils")
+
+local libnoise = utils.try_load_dlib("libnoise")
 
 local perlin = require("perlin")
 local voronoi = require("voronoi")
 local worley = require("worley")
 local uiworley = require("worley-ui")
 local uivoronoi = require("voronoi-ui")
-local utils = require("utils")
 
 local function get_seed()
   return os.time()
@@ -23,7 +25,6 @@ end
 -- 1. add preview option
 -- 2. add gradient slider for the palette colors that are selected to bias results
 --      similar to photoshop, but where sliders determine the cutoff for each
--- 3. actually add voronoi lol
 
 
 local function dots_dlog(parent, defs)

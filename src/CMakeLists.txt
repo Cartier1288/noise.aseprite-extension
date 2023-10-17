@@ -16,6 +16,8 @@ set_target_properties(${NOISE_LIB} PROPERTIES
 )
 #set_target_properties(${NOISE_LIB} PROPERTIES PUBLIC_HEADER ${MY_HEADERS})
 
+# note that the dynamic library is actually linked with lauxlib and lualib statically, since
+# I couldn't find a way to get it to work with aseprite's lua symbols out of the box
 target_link_libraries(${NOISE_LIB} PRIVATE lauxlib lualib)
 
 target_include_directories(${NOISE_LIB} PRIVATE "${INCLUDE_PATH}")

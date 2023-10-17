@@ -23,6 +23,9 @@ include(AddGitSubmodule)
 #add_git_submodule(external/lua)
 
 add_subdirectory(external)
-add_subdirectory(tests)
 add_subdirectory(src)
+
+if(NOT EXCLUDE_TESTS)
+  add_subdirectory(tests)
+endif()
 
