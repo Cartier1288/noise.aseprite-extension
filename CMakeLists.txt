@@ -22,6 +22,13 @@ include(AddGitSubmodule)
 
 #add_git_submodule(external/lua)
 
+message("configuring noise plugin for ${CMAKE_CXX_COMPILER_ID}")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  # force MSVC to conform to standard preprocessor, otherwise recursive macro used in worley for
+  # generic test cases breaks.
+  add_compile_options(/Zc:preprocessor)
+endif()
+
 add_subdirectory(external)
 add_subdirectory(src)
 

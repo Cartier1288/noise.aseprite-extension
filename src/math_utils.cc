@@ -4,24 +4,24 @@
 // wouldn't it be great if there was a standardized way to statically iterate over enum names haha,
 // that'd be crazy :)
 const char* DISTANCE_FUNC_NAMES[] = {
-    [EUCLIDIAN] = "Euclidian",
-    [MANHATTAN] = "Manhattan",
+  "Euclidian",
+  "Manhattan",
 };
 
 distance_func_t distance_funcs[] = {
-  [EUCLIDIAN] = dist3<double>,
-  [MANHATTAN] = mdist3<double>,
+  dist3<double>,
+  mdist3<double>,
 };
 
 
 const char* INTERPOLATE_FUNC_NAMES[] = {
-    [LERP] = "LERP",
-    [CERP] = "CERP",
-    [SMOOTHERSTEP] = "Smootherstep",
+    "LERP",
+    "CERP",
+    "Smootherstep",
 };
 
 erp_func_t interpolate_funcs[] = {
-  [LERP] = lerp<double>,
-  [CERP] = cerp<double>,
-  [SMOOTHERSTEP] = smootherstep<double>,
+  lerp<double>,
+  cerp<double>,
+  smootherstep<double>,
 };

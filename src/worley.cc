@@ -247,7 +247,7 @@ int Worley::lnew(lua_State* L) {
 #undef GET_INTEGER
 #undef GET_NUMBER
 
-#define N_CASE(i, _) \
+#define NTH_CASE(i, _) \
   case i: { \
       worley->compute_frame<i>(cache, z, arr->values); \
       break; \
@@ -289,10 +289,10 @@ int Worley::compute(lua_State* L) {
     switch(worley->n) {
         // TODO: if WORLEY_MAX_N is ever set > 9, then macro_utils will need to be expanded to
         // actually account for more "recursion"
-        EVAL(REPEAT(WORLEY_MAX_N, N_CASE, ~))
+        EVAL(REPEAT(WORLEY_MAX_N, NTH_CASE, ~))
         default:
-            std::string err = 
-                  std::string("unsupported Worley `n` given, 0 < n <= ") 
+            std::string err =
+                  std::string("unsupported Worley `n` given, 0 < n <= ")
                 + std::to_string(WORLEY_MAX_N);
             luaL_error(L, err.c_str());
             return 0;
@@ -308,6 +308,7 @@ int Worley::compute(lua_State* L) {
   // return ldarray[]
   return 1;
 }
+#undef N_CASE
 
 int Worley::to_string(lua_State* L) {
   Worley* worley = get_obj<Worley>(L, 1);

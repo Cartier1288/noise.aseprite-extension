@@ -1,0 +1,63 @@
+name: build
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        build_type: [Release]
+        package_type: [dynamic, lua]
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+    - uses: ilammy/msvc-dev-cmd@v1
+      if: runner.os == 'Windows'
+    - name: Workaround for windows-2022 and cmake 3.25.0
+      if: runner.os == 'Windows'
+      shell: bash
+      run: rm -rf C:/Strawberry/
+    - name: Install Dependencies
+      shell: bash
+      run: |
+        if [[ "${{ runner.os }}" == "Linux" ]] ; then
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake
+        fi
+    - name: Generating Makefiles
+      if: matrix.package_type == 'dynamic'
+      shell: bash
+      run: |
+        cmake -S . -B build \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \
+    - name: Compiling
+      if: matrix.package_type == 'dynamic'
+      shell: bash
+      run: |
+        cd build
+        cmake --build . --config ${{ matrix.build_type }}
+        cmake --install . --config ${{ matrix.build_type }}
+    - name: Running C++ Tests
+      if: matrix.package_type == 'dynamic'
+      shell: bash
+      run: |
+        echo "CMake tests"
+    - name: Running CLI Tests
+      if: matrix.package_type == 'dynamic'
+      shell: bash
+      run: |
+        echo "CLI tests"
+    - name: Build Package
+      shell: bash
+      run: |
+        chmod +x package.sh 
+        bash package.sh noise-${{ matrix.os }}-${{ matrix.package_type }} || true
+    - name: Generate Package Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: noise.aseprite-extension
+        path: ${{ github.workspace }}/noise-${{ matrix.os }}-${{ matrix.package_type }}.aseprite-extension
+        retention-days: 5

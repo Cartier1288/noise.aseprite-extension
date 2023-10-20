@@ -10,3 +10,5 @@ compile_commands.json
 *.zip
 
 **/callgrind.out*
+
+**/artifacts/*
