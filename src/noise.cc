@@ -97,7 +97,7 @@ static const struct luaL_Reg mylib[] = {
   {nullptr, nullptr}
 };
 
-int luaopen_libnoise(lua_State* L) {
+EXPORT int luaopen_libnoise(lua_State* L) {
   luaL_newlib(L, mylib);
 
   // libnoise.DISFUNCS

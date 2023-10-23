@@ -48,6 +48,7 @@ function init(plugin)
         package.cpath = pwd .. "bin/?.so;" .. package.cpath
         package.cpath = pwd .. "bin/?.a;" .. package.cpath
         package.cpath = pwd .. "bin/?.dll;" .. package.cpath
+        package.cpath = pwd .. "bin/?.dylib;" .. package.cpath
 
         local noise = require("scripts.noise")
         -- refresh the seed, since presumably the user wants a different seed if they are repeating

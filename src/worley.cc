@@ -298,6 +298,7 @@ int Worley::compute(lua_State* L) {
             return 0;
     }
 
+    // frames[frame+1] = arr
     lua_seti(L, -2, frame + 1);
 
     // move further in
