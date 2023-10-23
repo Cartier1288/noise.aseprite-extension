@@ -2,7 +2,7 @@
 
 NOISE_PACKAGE_NAME=noise
 EXT=aseprite-extension
-ARCHIVER="7z a"
+ARCHIVER="7z a -tzip"
 
 if [ $# -ge 1 ]; then
 	NOISE_PACKAGE_NAME=$1
