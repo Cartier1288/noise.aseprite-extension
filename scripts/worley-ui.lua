@@ -29,7 +29,9 @@ local function worley_dlog(parent, defs)
         parent=parent
     }
     dlog:number{ id="cellsize", label="Cell Size (0,\\infin]", text=tostring(defs.cellsize) }
-        :number{ id="mean_points", label="Mean Points (Per Cell) (0,\\infin]", text=tostring(defs.mean_points) }
+        :number{ id="mean_points", label="Mean Points (Per Cell) (0,\\infin]", decimals=3, 
+                 text=tostring(defs.mean_points) }
+        :label { id="nlabel", text="# of min. dists calcd:" }
         :number{ id="n", label="n [1,\\infin]", text=tostring(defs.n) }
         :check{ id="use_custom_combination", label="Custom Combination", selected=defs.use_custom_combination,
         onclick=function()
@@ -40,7 +42,7 @@ local function worley_dlog(parent, defs)
             option=defs.distance_func,
             options={ "Euclidian", "Manhattan" }
         }
-        :number{ id="clamp", label="Clamp Distance (0,\\infin]", text=tostring(defs.clamp) }
+        :number{ id="clamp", label="Clamp Distance (0,\\infin]", decimals=3, text=tostring(defs.clamp) }
         :check{ id="threed", label="3D (Animate)", selected=defs.threed, onclick=function()
             dlog:modify{ id="frames", visible=dlog.data.threed }
             dlog:modify{ id="loopz", visible=(dlog.data.threed and dlog.data.loop) }
@@ -48,7 +50,7 @@ local function worley_dlog(parent, defs)
             dlog:modify{ id="movement_func", visible=dlog.data.threed }
         end }
         :number{ id="frames", label="Frames to Animate", visible=defs.threed, text=tostring(defs.frames) }
-        :number{ id="movement", label="Z Movement [0,\\infin]", visible=defs.threed, text=tostring(defs.movement) }
+        :number{ id="movement", label="Z Movement [0,\\infin]", visible=defs.threed, decimals=3, text=tostring(defs.movement) }
         :combobox{ id="movement_func", label="Movement Function", visible=defs.threed,
             option=defs.movement_func,
             options=utils.get_keys(movement_funcs)

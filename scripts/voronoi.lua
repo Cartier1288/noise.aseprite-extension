@@ -48,8 +48,10 @@ local function voronoi_graph(points, width, height, dfunc)
     return graph
 end
 
--- todo add rounded option, take on color out of the mix and add that to edges / bg
+-- todo: add rounded option, take on color out of the mix and add that to edges / bg
 -- todo: add antialias flag
+-- todo: add loop / grid option, where points are generated outside of the main canvas area, since 
+-- as of now relaxing tends to pull points inwards
 
 -- returns an array with dimensions [length][width*height]
 local function voronoi(seed, width, height, length, options, loop)

@@ -24,11 +24,14 @@ a plugin for the respective software, I hope this is alright.
 2. Perlin noise. The quintessential pseudo-random noise function.
     * +Animation.
     * +Tiling.
+    ![Perlin Noise Example](examples/perlin.gif)
 3. Voronoi noise.
     * +Animation.
+    ![Voronoi Noise Example](examples/voronoi.gif)
 4. Worley noise.
     * +Animation.
     * +Tiling.
+    ![Worley Noise Example](examples/worley.gif)
 
 ## Usage
 
@@ -121,3 +124,10 @@ to the library file, I opted to use `require` which also happened to give no suc
 my expectation that require would wrap `loadlib` when loading a dynamic library, so I was surprised 
 to see that. Just know that as far as I am aware you will not be given a warning about loading 
 the library when using the plugin.
+
+
+### Disclaimer
+
+This is a new extension. There are definitely as of yet undetermined bugs. All of the primary 
+functionality gets tested often, but it's probably best to make a backup of files / layers before 
+using it.

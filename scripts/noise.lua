@@ -33,7 +33,7 @@ local function dots_dlog(parent, defs)
         parent = parent
       }
       :check { id = "use_brush", label = "Use Brush", selected = defs.use_brush }
-      :number { id = "density", label = "Density [0,1]", text = tostring(defs.density) }
+      :number { id = "density", label = "Density [0,1]", decimals=3, text = tostring(defs.density) }
       :button { id = "ok", text = "OK", focus = true }
       :button { id = "cancel", text = "Cancel" }
       :show()
@@ -46,7 +46,8 @@ local function perlin_dlog(parent, defs)
     title = "Perlin Noise Options",
     parent = parent
   }
-  dlog:number { id = "cellsize", label = "Cell Size [0,\\infin]", text = tostring(defs.cellsize) }
+  dlog:number { id = "cellsize", label = "Cell Size [0,\\infin]", decimals=3, 
+                text = tostring(defs.cellsize) }
       :check { id = "fixed", label = "Fixed Colors", selected = defs.fixed }
       :check { id = "threed", label = "3D Noise (Animate)", selected = defs.threed, onclick = function()
         dlog:modify {
@@ -63,7 +64,8 @@ local function perlin_dlog(parent, defs)
         }
       end }
       :number { id = "frames", label = "Frames to Animate", visible = defs.threed, text = tostring(defs.frames) }
-      :number { id = "rate", label = "Movement Rate", visible = defs.threed, text = tostring(defs.rate) }
+      :number { id = "rate", label = "Movement Rate", visible = defs.threed, decimals=3,
+                text = tostring(defs.rate) }
       :check { id = "loop", label = "Loop / Tile", selected = defs.loop, onclick = function()
         dlog:modify {
           id = "loopx",
@@ -119,7 +121,7 @@ local noise_defaults = {
   lock_alpha = false,
 }
 
-local function noise_dlog()
+local function noise_dlog(prev_opts, prev_mopts)
   local dlog = Dialog("Apply Noise")
   local mopts = nil
 
@@ -142,7 +144,7 @@ local function noise_dlog()
       }
       :button { id = "pick_methodoptions", text = "Method Options", onclick = function()
         local cmethod = dlog.data.method
-        local method_opts = method_dlog_map[cmethod](dlog, method_default_map[cmethod])
+        local method_opts = method_dlog_map[cmethod](dlog, mopts or method_default_map[cmethod])
         if method_opts.ok then
           mopts = method_opts
         end
@@ -332,10 +334,11 @@ local function do_noise(opts, mopts)
       end
     end
 
+    -- TODO: wrap this iteration process so that all other noise functions can use it
     for z = 1, frames do
       -- if we don't already have a frame create it
       if z > #sprite.frames then
-        sprite:newFrame(z)
+        sprite:newEmptyFrame(z)
       end
 
       cel = sprite:newCel(layer, z)
@@ -381,7 +384,7 @@ local function do_noise(opts, mopts)
     -- if we don't already have a frame create it
     for z = 1, frames do
       if z > #sprite.frames then
-        sprite:newFrame(z)
+        sprite:newEmptyFrame(z)
       end
 
       cel = sprite:newCel(layer, z)
@@ -400,7 +403,7 @@ local function do_noise(opts, mopts)
   end
 
   local function do_worley()
-    layer.name = "Worley Graph"
+    layer.name = "Worley Noise"
 
     local frames = mopts.threed and mopts.frames or 1
 
@@ -422,6 +425,12 @@ local function do_noise(opts, mopts)
     local graphs = nil
 
     local offset = 0
+
+    local moved_cells = mopts.movement / mopts.cellsize
+    if mopts.loopz and moved_cells - math.floor(moved_cells) > 1/10^6 then
+      -- TODO: make this a dialog to allow early cancel if desired
+      app.alert("Warning! You requested z-looping, but z-movement is not a factor of the cellsize. This will cause a visual stutter at the end of the loop.")
+    end
 
     if Worley then
       offset = 1
@@ -493,7 +502,7 @@ local function do_noise(opts, mopts)
     -- if we don't already have a frame create it
     for z = 1, frames do
       if z > #sprite.frames then
-        sprite:newFrame(z)
+        sprite:newEmptyFrame(z)
       end
 
       cel = sprite:newCel(layer, z)
@@ -524,8 +533,13 @@ local function do_noise(opts, mopts)
 end
 
 
-local function noise_try()
-  local dlog_options, mopts = table.unpack(noise_dlog())
+local function noise_try(prefs)
+  local lc = prefs.last_command
+
+  local dlog_options, mopts = table.unpack(noise_dlog(
+    lc and lc.opts,
+    lc and lc.mopts
+  ))
 
   local sprite = app.activeSprite
   if not sprite then
@@ -534,6 +548,7 @@ local function noise_try()
 
   -- make sure the user actually confirmed the script application in the dialog
   if dlog_options.ok then
+
     app.transaction(
       "Noise",
       function()
@@ -541,15 +556,19 @@ local function noise_try()
       end
     )
     app.refresh()
+
+    return dlog_options, mopts
   end
 end
 
 return {
   noise_dlog = noise_dlog,
-  noise = function()
-    app.transaction("Noise", do_noise)
+  noise = function(opts, mopts)
+    app.transaction("Noise", function() do_noise(opts, mopts) end)
+    app.refresh()
   end,
-  noise_try = noise_try
+  noise_try = noise_try,
+  get_seed = get_seed,
 }
 
 --[[

@@ -49,7 +49,8 @@ local function voronoi_dlog(parent, defs)
         end }
         :number{ id="frames", label="Frames to Animate", visible=defs.threed, text=tostring(defs.frames) }
         :check{ id="loop", label="Loop Movement", visible=defs.threed, selected=defs.loop }
-        :number{ id="movement", label="Point Movement [0,\\infin]", visible=defs.threed, text=tostring(defs.movement) }
+        :number{ id="movement", label="Point Movement [0,\\infin]", visible=defs.threed, decimals=3,
+                 text=tostring(defs.movement) }
         :combobox{ id="movement_func", label="Movement Function", visible=defs.threed,
             option=defs.movement_func,
             options=utils.get_keys(movement_funcs)
