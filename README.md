@@ -24,14 +24,14 @@ a plugin for the respective software, I hope this is alright.
 2. Perlin noise. The quintessential pseudo-random noise function.
     * +Animation.
     * +Tiling.
-    ![Perlin Noise Example](examples/perlin.gif)
+    ![Perlin Noise Example](examples/perlin-shortened.gif)
 3. Voronoi noise.
     * +Animation.
-    ![Voronoi Noise Example](examples/voronoi.gif)
+    ![Voronoi Noise Example](examples/voronoi-shortened.gif)
 4. Worley noise.
     * +Animation.
     * +Tiling.
-    ![Worley Noise Example](examples/worley.gif)
+    ![Worley Noise Example](examples/worley-shortened.gif)
 
 ## Usage
 
