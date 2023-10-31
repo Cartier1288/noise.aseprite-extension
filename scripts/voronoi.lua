@@ -174,10 +174,29 @@ local function voronoi(seed, width, height, length, options, loop)
     return v
 end
 
-local function worley()
+local function paint_voronoi(sp, opts, mopts)
+    sp.layer.name = "Voronoi Graph"
+
+    local frames = mopts.threed and mopts.frames or 1
+
+    local graphs = voronoi(opts.seed, sp.width, sp.height, frames, {
+      colors = #sp.color_range,
+      points = { mopts.min_points, mopts.max_points },
+      distance_func = mopts.distance_func == "Euclidian" and utils.dist2 or utils.mh_dist2,
+      relax = mopts.relax,
+      relax_steps = mopts.relax_steps,
+      movement = mopts.movement,
+      locations = mopts.locations,
+      loop = mopts.loop
+    }, {})
+
+    for pixel in sp:animate(frames) do
+      local graph = graphs[pixel.frame]
+      pixel:put(sp.color_range[graph[pixel.idx]])
+    end
 end
 
 return {
     voronoi=voronoi,
-    worley=worley,
+    paint_voronoi=paint_voronoi
 }

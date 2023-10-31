@@ -2,9 +2,9 @@
 -- https://dl.acm.org/doi/pdf/10.1145/237170.237267
 
 -- Worley algorithm uses a lttice similar to Perlin to handle generating points
-
 require("lattice")
 local utils = require("utils")
+local libnoise = utils.try_load_dlib("libnoise")
 
 -- returns the nth element of an array, default combination
 local function nth(n, arr)
@@ -191,7 +191,7 @@ local function worley(seed, width, height, length, options)
             local i = y*width + x
 
             -- get the value of the basis function
-            Fns[i] = QFn(ltc, n, x, y, options)
+            Fns[i+1] = QFn(ltc, n, x, y, options)
 
             -- todo add custom fall-off functions
             -- apply combination / modifiers of basis functions
@@ -207,8 +207,110 @@ local function worley(seed, width, height, length, options)
     return graphs
 end
 
+local function paint_worley(sp, opts, mopts)
+    sp.layer.name = "Worley Noise"
+
+    local frames = mopts.threed and mopts.frames or 1
+
+    local combfunc = nth
+
+    if mopts.use_custom_combination then
+      combfunc = create_combination(mopts.combination)
+    end
+
+    local loop = { x = 0, y = 0, z = 0 };
+    if mopts.loop then
+      loop = {
+        x = sp.width/mopts.cellsize,
+        y = sp.height/mopts.cellsize,
+        z = mopts.movement/mopts.cellsize
+      }
+    end
+
+    local graphs = nil
+
+    local moved_cells = mopts.movement / mopts.cellsize
+    if mopts.loopz and moved_cells - math.floor(moved_cells) > 1/10^6 then
+      -- TODO: make this a dialog to allow early cancel if desired
+      app.alert("Warning! You requested z-looping, but z-movement is not a factor of the cellsize. This will cause a visual stutter at the end of the loop.")
+    end
+
+    if Worley and not use_lua then
+      local W = Worley {
+        seed = opts.seed,
+        width = sp.width,
+        height = sp.height,
+        length = frames,
+        mean_points = mopts.mean_points,
+        n = mopts.n,
+        cellsize = mopts.cellsize,
+        distance_func = libnoise.DISFUNCS[mopts.distance_func],
+        movement = mopts.movement,
+        movement_func = libnoise.ERPFUNCS[mopts.movement_func],
+        loops = loop,
+      }
+
+      graphs = W:compute()
+
+      --print(W)
+
+      local n = mopts.n
+      local clamp = mopts.clamp
+      for g=1,#graphs do
+        local graph = graphs[g]
+        local new_graph = { }
+        
+        for i=1,#graph,n do
+          local item = { }
+          for j=i,i+n-1 do
+            table.insert(item, graph[j])
+          end
+          table.insert(new_graph, item)
+        end
+
+        graphs[g] = new_graph
+        graph = new_graph
+
+        for i=1,#graph do
+          graph[i] = utils.clamp(0, clamp, combfunc(n, graph[i])) / clamp
+        end
+      end
+    else
+      graphs = worley(opts.seed, sp.width, sp.height, frames, {
+        colors = #sp.color_range,
+        mean_points = mopts.mean_points,
+        n = mopts.n,
+        cellsize = mopts.cellsize,
+        clamp = mopts.clamp,
+        distance_func = mopts.distance_func == "Euclidian" and utils.dist2 or utils.mh_dist2,
+        movement = mopts.movement,
+        movement_func = mopts.movement_func,
+        combfunc = combfunc,
+        loop = mopts.loop,
+        loops = loop,
+        seed = opts.seed,
+      })
+
+      local n = mopts.n
+      local clamp = mopts.clamp
+      for _, graph in ipairs(graphs) do
+        for i = 1, #graph do
+          graph[i] = utils.clamp(0, clamp, combfunc(n, graph[i])) / clamp
+        end
+      end
+    end
+
+    -- if we don't already have a frame create it
+    for pixel in sp:animate(frames) do
+        local graph = graphs[pixel.frame]
+        local val = graph[pixel.idx+1]
+        pixel:put(utils.color_grad(val, table.unpack(sp.color_range)))
+    end
+end
+
 return {
     worley=worley,
+    paint_worley=paint_worley,
     create_combination=create_combination,
     nth=nth
 }

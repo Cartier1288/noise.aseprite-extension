@@ -364,6 +364,40 @@ local function nclosest(n, points, arr, x, y, dfunc)
   end
 end
 
+-- calculates the range of a function
+local function range(arr, start)
+  if #arr == 0 then return nil end
+  if not start then start = 1 end
+
+  local least = arr[start]
+  local most = least
+
+  for i=start,#arr-start do
+    local val = arr[i]
+    if val < least then least = val
+    elseif val > most then most = val end
+  end
+
+  return least, most
+end
+
+-- scales a function into a desired range
+local function scale(arr, start, new_min, new_max)
+  if #arr == 0 then return nil end
+
+  -- actual range
+  local fmin, fmax = range(arr)
+
+  local s = (new_max - new_min) / (fmax - fmin) -- scale
+
+  for i=start,#arr-start do
+    -- shift x to [0,frange], scale to [0,new_range], then shift by new_min
+    arr[i] = (arr[i] - fmin) * s + new_min
+  end
+
+  return arr
+end
+
 local function timer_start()
   local t = os.clock();
   return function()
@@ -425,6 +459,8 @@ return {
   greater = greater,
   insert_sortn = insert_sortn,
   nclosest = nclosest,
+  range = range,
+  scale = scale,
 
   -- random number generators
   rbinom = rbinom,
