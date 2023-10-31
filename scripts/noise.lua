@@ -2,20 +2,22 @@ app = app -- stfu lsp
 Dialog = Dialog
 Point = Point
 Color = Color
+ColorMode = ColorMode
 ldarray = ldarray
 Worley = Worley
 
 package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
 
 local utils = require("utils")
+local SpritePainter = require("sprite-painter").SpritePainter
 
-local libnoise = utils.try_load_dlib("libnoise")
-
+local dots = require("dots")
 local perlin = require("perlin")
 local voronoi = require("voronoi")
 local worley = require("worley")
-local uiworley = require("worley-ui")
+local uiperlin = require("perlin-ui")
 local uivoronoi = require("voronoi-ui")
+local uiworley = require("worley-ui")
 
 local function get_seed()
   return os.time()
@@ -41,77 +43,16 @@ local function dots_dlog(parent, defs)
   return dlog.data
 end
 
-local function perlin_dlog(parent, defs)
-  local dlog = Dialog {
-    title = "Perlin Noise Options",
-    parent = parent
-  }
-  dlog:number { id = "cellsize", label = "Cell Size [0,\\infin]", decimals=3, 
-                text = tostring(defs.cellsize) }
-      :check { id = "fixed", label = "Fixed Colors", selected = defs.fixed }
-      :check { id = "threed", label = "3D Noise (Animate)", selected = defs.threed, onclick = function()
-        dlog:modify {
-          id = "frames",
-          visible = dlog.data.threed
-        }
-        dlog:modify {
-          id = "rate",
-          visible = dlog.data.threed
-        }
-        dlog:modify {
-          id = "loopz",
-          visible = dlog.data.loop and dlog.data.threed
-        }
-      end }
-      :number { id = "frames", label = "Frames to Animate", visible = defs.threed, text = tostring(defs.frames) }
-      :number { id = "rate", label = "Movement Rate", visible = defs.threed, decimals=3,
-                text = tostring(defs.rate) }
-      :check { id = "loop", label = "Loop / Tile", selected = defs.loop, onclick = function()
-        dlog:modify {
-          id = "loopx",
-          visible = dlog.data.loop
-        }
-        dlog:modify {
-          id = "loopy",
-          visible = dlog.data.loop
-        }
-        dlog:modify {
-          id = "loopz",
-          visible = dlog.data.loop and dlog.data.threed
-        }
-      end }
-      :check { id = "loopx", label = "Loop X", selected = defs.loopx, visible = defs.loop }
-      :check { id = "loopy", label = "Loop Y", selected = defs.loopy, visible = defs.loop }
-      :check { id = "loopz", label = "Loop Z", selected = defs.loopz, visible = (defs.loop and defs.threed) }
-      :button { id = "ok", text = "OK", focus = true }
-      :button { id = "cancel", text = "Cancel" }
-      :show()
-
-  return dlog.data
-end
-
 local method_dlog_map = {
   Dots = dots_dlog,
-  Perlin = perlin_dlog,
+  Perlin = uiperlin.dlog,
   Voronoi = uivoronoi.dlog,
   Worley = uiworley.dlog
 }
 
 local method_default_map = {
   Dots = { use_brush = false, density = 0.25 },
-  Perlin = {
-    cellsize = 8,   -- size of each grid cell, the intersection of which is where the
-    -- gradient is computed
-    fixed = true,   -- only use the colors in the given range, otherwise interpolate between them
-    threed = false,
-    frames = 1,
-    rate = 1,
-
-    loop = false,
-    loopx = false,
-    loopy = false,
-    loopz = false
-  },
+  Perlin = uiperlin.defs,
   Voronoi = uivoronoi.defs,
   Worley = uiworley.defs
 }
@@ -167,366 +108,14 @@ end
 local function do_noise(opts, mopts)
   math.randomseed(opts.seed)
 
-  local sprite = app.sprite
-  if not sprite then
-    return app.alert("no active sprite to apply noise to")
-  end
-
-  local layer = nil
-  local cel = nil
-  if opts.use_active_layer then
-    layer = app.layer
-    cel = app.cel
-    if not layer or not cel then
-      return app.alert("opts.use_active_layer set but no active layer")
-    end
-  else
-    layer = sprite:newLayer()
-    cel = sprite:newCel(layer, 1)
-  end
-
-  local image = cel.image
-  local palette = sprite.palettes[1]
-
-  local get_color = function(int)
-    return Color(int)
-  end
-  if (image.colorMode == ColorMode.INDEXED) then
-    get_color = function(idx)
-      return palette:getColor(idx)
-    end
-  end
-
-  local width = sprite.width
-  local height = sprite.height
-
-  local alphas = {}
-  local do_lock_alpha = opts.use_active_layer and opts.lock_alpha
-  if do_lock_alpha then
-    local bounds = image.bounds
-    local left = cel.position.x
-    local right = left + bounds.w
-    local top = cel.position.y
-    local bottom = top + bounds.h
-
-    -- init everything to 0 to begin with
-    for x = 0, width - 1 do
-      alphas[x] = {}
-      for y = 0, height - 1 do
-        alphas[x][y] = 0
-      end
-    end
-
-    local get_alpha = function(int)
-      return app.pixelColor.rgbaA(int)
-    end
-    if (image.colorMode == ColorMode.INDEXED) then
-      get_alpha = function(idx)
-        if idx == image.spec.transparentColor then
-          return 0
-        else
-          return palette:getColor(idx).alpha
-        end
-      end
-    end
-
-    for it in image:pixels() do
-      -- the actual image is at least as small as the cel, so assign each of its pixels based on
-      -- its bounds and offset from the cel start
-      alphas[it.x + left][it.y + top] = get_alpha(it())
-    end
-  end
-
-  -- get color range
-  local color_range = { app.bgColor, app.fgColor }
-  if #(app.range.colors) > 1 then
-    color_range = {}
-    for i = 1, #app.range.colors do
-      color_range[i] = palette:getColor(app.range.colors[i])
-    end
-  end
-
-  local clear_rect = Rectangle { x = 0, y = 0, width = 1, height = 1 }
-
-  -- add alpha lock as a seperate pass for simplicity
-  local function lock_alpha(img)
-    if do_lock_alpha then
-      for it in img:pixels() do
-        local color = get_color(it())
-        local alpha = alphas[it.x][it.y]
-        color = Color {
-          red = color.red,
-          green = color.green,
-          blue = color.blue,
-          alpha = alpha
-        }
-        image:drawPixel(it.x, it.y, color)
-      end
-    end
-  end
-
-  -- let closures do the work for me :)
-  local function do_dots()
-    layer.name = "Dot Noise"
-
-    local brush = app.activeBrush
-    if mopts.use_brush and not brush then
-      return app.alert("dots.active_brush set but no active brush")
-    end
-
-    for x = 0, width do
-      for y = 0, height do
-        local r = math.random()
-        if r < mopts.density then
-          if mopts.use_brush then
-            local pt = Point(x, y)
-            app.useTool {
-              tool = "pencil",
-              color = app.fgColor,
-              brush = brush,
-              points = { pt },
-              cel = cel,
-              layer = layer
-            }
-          else
-            image:drawPixel(x, y, app.fgColor)
-          end
-        end
-      end
-    end
-
-    lock_alpha(image)
-  end
-
-  local function do_perlin()
-    layer.name = "Perlin Noise"
-
-    local frames = mopts.threed and mopts.frames or 1
-    local noisef = mopts.threed and perlin.perlin3d or perlin.perlin
-
-    local loop = {
-      loopx = utils.id,
-      loopy = utils.id,
-      loopz = utils.id
-    }
-
-    if mopts.loop then
-      if mopts.loopx then
-        loop.xfrom = 0
-        loop.xto = width / mopts.cellsize
-
-        local dxloop = loop.xto - loop.xfrom
-        loop.loopx = function(v) return utils.loop(v, loop.xfrom, dxloop) end
-      end
-      if mopts.loopy then
-        loop.yfrom = 0
-        loop.yto = height / mopts.cellsize
-
-        local dyloop = loop.yto - loop.yfrom
-        loop.loopy = function(v) return utils.loop(v, loop.yfrom, dyloop) end
-      end
-      if mopts.loopz then
-        loop.zfrom = 1
-        loop.zto = (frames * mopts.rate) / mopts.cellsize + 1
-
-        local dzloop = loop.zto - loop.zfrom
-        loop.loopz = function(v) return utils.loop(v, loop.zfrom, dzloop) end
-      end
-    end
-
-    -- TODO: wrap this iteration process so that all other noise functions can use it
-    for z = 1, frames do
-      -- if we don't already have a frame create it
-      if z > #sprite.frames then
-        sprite:newEmptyFrame(z)
-      end
-
-      cel = sprite:newCel(layer, z)
-      image = cel.image
-
-      for x = 0, width do
-        for y = 0, height do
-          local val = noisef(opts.seed, x / mopts.cellsize, y / mopts.cellsize, (z * mopts.rate) / mopts.cellsize, loop)
-          val = val * 0.5 + 0.5   -- normalize
-
-          local color = nil
-
-          if mopts.fixed then
-            color = utils.color_grad_fixed(val, table.unpack(color_range))
-          else
-            color = utils.color_grad(val, table.unpack(color_range))
-          end
-
-          image:drawPixel(x, y, color)
-        end
-      end
-
-      lock_alpha(image)
-    end
-  end
-
-  local function do_voronoi()
-    layer.name = "Voronoi Graph"
-
-    local frames = mopts.threed and mopts.frames or 1
-
-    local graphs = voronoi.voronoi(opts.seed, width, height, frames, {
-      colors = #color_range,
-      points = { mopts.min_points, mopts.max_points },
-      distance_func = mopts.distance_func == "Euclidian" and utils.dist2 or utils.mh_dist2,
-      relax = mopts.relax,
-      relax_steps = mopts.relax_steps,
-      movement = mopts.movement,
-      locations = mopts.locations,
-      loop = mopts.loop
-    }, {})
-
-    -- if we don't already have a frame create it
-    for z = 1, frames do
-      if z > #sprite.frames then
-        sprite:newEmptyFrame(z)
-      end
-
-      cel = sprite:newCel(layer, z)
-      image = cel.image
-
-      local graph = graphs[z]
-
-      for x = 0, width - 1 do
-        for y = 0, height - 1 do
-          image:drawPixel(x, y, color_range[graph[y * width + x]])
-        end
-      end
-
-      lock_alpha(image)
-    end
-  end
-
-  local function do_worley()
-    layer.name = "Worley Noise"
-
-    local frames = mopts.threed and mopts.frames or 1
-
-    local combfunc = worley.nth
-
-    if mopts.use_custom_combination then
-      combfunc = worley.create_combination(mopts.combination)
-    end
-
-    local loop = { x = 0, y = 0, z = 0 };
-    if mopts.loop then
-      loop = {
-        x = width/mopts.cellsize,
-        y = height/mopts.cellsize,
-        z = mopts.movement/mopts.cellsize
-      }
-    end
-
-    local graphs = nil
-
-    local offset = 0
-
-    local moved_cells = mopts.movement / mopts.cellsize
-    if mopts.loopz and moved_cells - math.floor(moved_cells) > 1/10^6 then
-      -- TODO: make this a dialog to allow early cancel if desired
-      app.alert("Warning! You requested z-looping, but z-movement is not a factor of the cellsize. This will cause a visual stutter at the end of the loop.")
-    end
-
-    if Worley then
-      offset = 1
-
-      local W = Worley {
-        seed = opts.seed,
-        width = width,
-        height = height,
-        length = frames,
-        mean_points = mopts.mean_points,
-        n = mopts.n,
-        cellsize = mopts.cellsize,
-        distance_func = libnoise.DISFUNCS[mopts.distance_func],
-        movement = mopts.movement,
-        movement_func = libnoise.ERPFUNCS[mopts.movement_func],
-        loops = loop,
-      }
-
-      graphs = W:compute()
-
-      --print(W)
-
-      local n = mopts.n
-      local clamp = mopts.clamp
-      for g=1,#graphs do
-        local graph = graphs[g]
-        local new_graph = { }
-        
-        for i=1,#graph,n do
-          local item = { }
-          for j=i,i+n-1 do
-            table.insert(item, graph[j])
-          end
-          table.insert(new_graph, item)
-        end
-
-        graphs[g] = new_graph
-        graph = new_graph
-
-        for i=1,#graph do
-          graph[i] = utils.clamp(0, clamp, combfunc(n, graph[i])) / clamp
-        end
-      end
-    else
-      graphs = worley.worley(opts.seed, width, height, frames, {
-        colors = #color_range,
-        mean_points = mopts.mean_points,
-        n = mopts.n,
-        cellsize = mopts.cellsize,
-        clamp = mopts.clamp,
-        distance_func = mopts.distance_func == "Euclidian" and utils.dist2 or utils.mh_dist2,
-        movement = mopts.movement,
-        movement_func = mopts.movement_func,
-        combfunc = combfunc,
-        loop = mopts.loop,
-        loops = loop,
-        seed = opts.seed,
-      })
-
-      local n = mopts.n
-      local clamp = mopts.clamp
-      for _, graph in ipairs(graphs) do
-        for i = 0, #graph do
-          graph[i] = utils.clamp(0, clamp, combfunc(n, graph[i])) / clamp
-        end
-      end
-    end
-
-    -- if we don't already have a frame create it
-    for z = 1, frames do
-      if z > #sprite.frames then
-        sprite:newEmptyFrame(z)
-      end
-
-      cel = sprite:newCel(layer, z)
-      image = cel.image
-
-      local graph = graphs[z]
-
-      for x = 0, width - 1 do
-        local scanned = x * height
-        for y = 0, height - 1 do
-          local val = graph[scanned + y + offset]
-          image:drawPixel(x, y, utils.color_grad(val, table.unpack(color_range)))
-        end
-      end
-
-      lock_alpha(image)
-    end
-  end
+  local ok, sp = pcall(function() return SpritePainter:new(opts) end)
+  if not ok then return end
 
   local noise_appliers = {
-    Dots = do_dots,
-    Perlin = do_perlin,
-    Voronoi = do_voronoi,
-    Worley = do_worley,
+    Dots = function() dots.paint_dots(sp, opts, mopts) end,
+    Perlin = function() perlin.paint_perlin(sp, opts, mopts) end,
+    Voronoi = function() voronoi.paint_voronoi(sp, opts, mopts) end,
+    Worley = function() worley.paint_worley(sp, opts, mopts) end,
   }
 
   noise_appliers[opts.method](opts, mopts)
@@ -570,11 +159,3 @@ return {
   noise_try = noise_try,
   get_seed = get_seed,
 }
-
---[[
-return {
-  noise_dlog = function() end,
-  noise = function() end,
-  noise_try = function() end,
-}
---]]

@@ -117,7 +117,7 @@ end
 local interpolate = utils.smootherstep
 
 -- for convenience, perlin is given the same signature as perlin3d, the fourth arg is just unused
-local function perlin(seed, x, y, _, loop)
+local function perlin2d(seed, x, y, _, loop)
 
     -- get the corners for the gradient
     local cx = math.floor(x)
@@ -186,7 +186,139 @@ local function perlin3d(seed, x, y, z, loop)
     return interpolate(topdot, botdot, sy)
 end
 
+-- opts: {
+--      seed: int,
+--      dimensions: int in { 2, 3 },
+--      movement: double,
+--      cellsize: double,
+--      width: int,
+--      height: int,
+--      frames: int,
+--      octaves: int,
+--      loop: {
+--          loopx: double (*loopf)(double),
+--          loopy: double (*loopf)(double),
+--          loopz: double (*loopf)(double),
+--      }
+-- }
+local function perlin(opts)
+    local noisef = perlin2d
+
+    if opts.dimensions == 3 then
+        noisef = perlin3d
+    end
+
+    local cs = opts.cellsize
+
+    -- generate looping functions for each octive as necessary
+    local loops = { }
+    local loopx = opts.loop.loopx
+    local loopy = opts.loop.loopy
+    local loopz = opts.loop.loopz
+    for i=1,opts.octaves do
+        local freq = 2^(i-1)
+        loops[i] = {
+            loopx = (loopx and function(val) return utils.loop(val, 0, freq*loopx) end) or utils.id,
+            loopy = (loopy and function(val) return utils.loop(val, 0, freq*loopy) end) or utils.id,
+            loopz = (loopz and function(val) return utils.loop(val, 0, freq*loopz) end) or utils.id,
+        }
+    end
+
+    local graphs = { }
+
+    -- calculate final sum of amplitudes S = \sum_{i=0}{octaves}{(1/2)^i} = 2 - (1/2)^{octaves}
+    local total_amplitude = 2 - 0.5^(opts.octaves-1)
+
+    local zjump = (1/opts.frames) * opts.movement
+
+    for frame=1,opts.frames do
+
+    -- movement actually gets scaled back to match looping, so that there aren't two frames at the
+    -- same z position, this is fine as long as movement doesn't need to be PRECISE
+    local z = (frame-1) * zjump
+    local adj_z = z
+
+    graphs[frame] = { }; local graph = graphs[frame]
+    graph[opts.width * opts.height] = 0
+
+    for y=0, opts.height-1 do
+        local scanned = y * opts.width
+        local adj_y = y / cs
+
+        for x=0,opts.width-1 do
+            local weight = 1
+
+            local val = 0
+
+            local adj_x = x / cs
+
+            for i=1,opts.octaves do
+                val = val + weight*noisef(
+                    opts.seed,
+                    adj_x / weight,
+                    adj_y / weight,
+                    adj_z / weight,
+                    loops[i]
+                )
+                weight = weight * 0.5
+            end
+
+            val = val / total_amplitude
+            graph[scanned + x] = val
+        end
+    end
+
+    end
+
+    return graphs
+end
+
+local function paint_perlin(sp, opts, mopts)
+    sp.layer.name = "Perlin Noise"
+
+    local frames = mopts.threed and mopts.frames or 1
+
+    local graphs = perlin {
+        seed = opts.seed,
+        dimensions = mopts.threed and 3 or 2,
+        movement = mopts.movement,
+        cellsize = mopts.cellsize,
+        width = sp.width,
+        height = sp.height,
+        frames = frames,
+        octaves = mopts.octaves,
+        loop = {
+            loopx = mopts.loop and mopts.loopx and sp.width / mopts.cellsize,
+            loopy = mopts.loop and mopts.loopy and sp.height / mopts.cellsize,
+            loopz = mopts.loop and mopts.loopz and mopts.movement,
+        },
+    }
+
+    local color = nil
+
+    if mopts.scale_range then
+        for g=1, #graphs do
+            graphs[g] = utils.scale(graphs[g], 0, -1, 1)
+        end
+    end
+
+    for pixel in sp:animate(frames) do
+          local val = graphs[pixel.frame][pixel.idx]
+          val = val * 0.5 + 0.5   -- normalize
+
+          if mopts.fixed then
+            color = utils.color_grad_fixed(val, table.unpack(sp.color_range))
+          else
+            color = utils.color_grad(val, table.unpack(sp.color_range))
+          end
+
+          pixel:put(color)
+    end
+end
+
 return {
+    perlin2d=perlin2d,
+    perlin3d=perlin3d,
     perlin=perlin,
-    perlin3d=perlin3d
+    paint_perlin=paint_perlin
 }
