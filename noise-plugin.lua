@@ -1,3 +1,18 @@
+
+local adjusted = false
+local function fix_path()
+  if not adjusted then
+    adjusted = true;
+
+    local pwd = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]]
+    package.path = pwd .. "?.lua;" .. package.path
+    package.cpath = pwd .. "bin/?.so;" .. package.cpath
+    package.cpath = pwd .. "bin/?.a;" .. package.cpath
+    package.cpath = pwd .. "bin/?.dll;" .. package.cpath
+    package.cpath = pwd .. "bin/?.dylib;" .. package.cpath
+  end
+end
+
 function init(plugin)
   print("initializing Noise plugin")
 
@@ -17,11 +32,7 @@ function init(plugin)
     title = "Generate Noise",
     group = group,
     onclick = function()
-      local pwd = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]]
-      package.path = pwd .. "?.lua;" .. package.path
-      package.cpath = pwd .. "bin/?.so;" .. package.cpath
-      package.cpath = pwd .. "bin/?.a;" .. package.cpath
-      package.cpath = pwd .. "bin/?.dll;" .. package.cpath
+      fix_path()
 
       -- requiring here means that error messages that would have been on plugin startup can
       -- be recorded
@@ -44,11 +55,6 @@ function init(plugin)
           return
         end
         local pwd = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]]
-        package.path = pwd .. "?.lua;" .. package.path
-        package.cpath = pwd .. "bin/?.so;" .. package.cpath
-        package.cpath = pwd .. "bin/?.a;" .. package.cpath
-        package.cpath = pwd .. "bin/?.dll;" .. package.cpath
-        package.cpath = pwd .. "bin/?.dylib;" .. package.cpath
 
         local noise = require("scripts.noise")
         -- refresh the seed, since presumably the user wants a different seed if they are repeating

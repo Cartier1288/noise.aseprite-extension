@@ -300,11 +300,13 @@ local function paint_worley(sp, opts, mopts)
       end
     end
 
+    local grad = opts.grad
+
     -- if we don't already have a frame create it
     for pixel in sp:animate(frames) do
         local graph = graphs[pixel.frame]
         local val = graph[pixel.idx+1]
-        pixel:put(utils.color_grad(val, table.unpack(sp.color_range)))
+        pixel:put(grad:color_cont(val))
     end
 end
 

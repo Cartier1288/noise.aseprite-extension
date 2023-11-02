@@ -6,10 +6,16 @@ ColorMode = ColorMode
 ldarray = ldarray
 Worley = Worley
 
-package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
+
+-- for convenience, also add the scripts folder directly to the path to avoid having to write
+-- scripts.[...] every time
+local pwd = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]]
+package.path = pwd .. "?.lua;" .. package.path
+package.path = pwd .. "?/init.lua;" .. package.path
 
 local utils = require("utils")
 local SpritePainter = require("sprite-painter").SpritePainter
+local Gradient = require("gradient")
 
 local dots = require("dots")
 local perlin = require("perlin")
@@ -68,6 +74,8 @@ local function noise_dlog(prev_opts, prev_mopts)
 
   local defs = noise_defaults
 
+  local cdata = utils.DialogCustomData:new(dlog)
+
   dlog:check { id = "use_active_layer", label = "Use Active Layer",
     selected = defs.use_active_layer,
     onclick = function()
@@ -90,6 +98,15 @@ local function noise_dlog(prev_opts, prev_mopts)
           mopts = method_opts
         end
       end }
+
+      utils.Dialog_gradient(dlog, cdata, {
+        id="colors",
+        label="Color Picker",
+        mode="sort",
+        colors=utils.get_selected_colors(app.sprite)
+      })
+
+      dlog
       :newrow()
       :button { id = "ok", text = "OK", focus = true, onclick = function()
         if not mopts then
@@ -101,7 +118,12 @@ local function noise_dlog(prev_opts, prev_mopts)
       :button { id = "cancel", text = "Cancel" }
       :show()
 
-  return { dlog.data, mopts }
+  local opts = utils.cat(dlog.data)
+  local cgrad_data = cdata:get("colors")
+  opts.colors = cgrad_data.colors
+  opts.grad = Gradient:new(cgrad_data.colors, cgrad_data.cutoffs, { })
+
+  return { opts, mopts }
 end
 
 
@@ -125,15 +147,15 @@ end
 local function noise_try(prefs)
   local lc = prefs.last_command
 
-  local dlog_options, mopts = table.unpack(noise_dlog(
-    lc and lc.opts,
-    lc and lc.mopts
-  ))
-
   local sprite = app.activeSprite
   if not sprite then
     return app.alert("no active sprite to apply noise to")
   end
+
+  local dlog_options, mopts = table.unpack(noise_dlog(
+    lc and lc.opts,
+    lc and lc.mopts
+  ))
 
   -- make sure the user actually confirmed the script application in the dialog
   if dlog_options.ok then
@@ -148,6 +170,8 @@ local function noise_try(prefs)
 
     return dlog_options, mopts
   end
+
+  return lc and lc.opts, lc and lc.mopts
 end
 
 return {

@@ -179,8 +179,10 @@ local function paint_voronoi(sp, opts, mopts)
 
     local frames = mopts.threed and mopts.frames or 1
 
+    local color_range = opts.grad.colors
+
     local graphs = voronoi(opts.seed, sp.width, sp.height, frames, {
-      colors = #sp.color_range,
+      colors = #color_range,
       points = { mopts.min_points, mopts.max_points },
       distance_func = mopts.distance_func == "Euclidian" and utils.dist2 or utils.mh_dist2,
       relax = mopts.relax,
@@ -192,7 +194,7 @@ local function paint_voronoi(sp, opts, mopts)
 
     for pixel in sp:animate(frames) do
       local graph = graphs[pixel.frame]
-      pixel:put(sp.color_range[graph[pixel.idx]])
+      pixel:put(color_range[graph[pixel.idx]])
     end
 end
 

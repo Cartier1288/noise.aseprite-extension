@@ -2,7 +2,7 @@
     "name": "noise-scripts",
     "displayName": "Noise",
     "description": "Various noise generators",
-    "version": "0.2",
+    "version": "0.3",
     "author": { "name": "",
                 "email": "",
                 "url": "" },

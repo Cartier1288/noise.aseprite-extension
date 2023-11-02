@@ -1,4 +1,5 @@
 local utils = require("utils")
+local Gradient = require("gradient")
 
 local SpritePainter = { }
 

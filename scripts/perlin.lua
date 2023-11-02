@@ -302,14 +302,16 @@ local function paint_perlin(sp, opts, mopts)
         end
     end
 
+    local grad = opts.grad
+
     for pixel in sp:animate(frames) do
           local val = graphs[pixel.frame][pixel.idx]
           val = val * 0.5 + 0.5   -- normalize
 
           if mopts.fixed then
-            color = utils.color_grad_fixed(val, table.unpack(sp.color_range))
+            color = grad:color_disc(val)
           else
-            color = utils.color_grad(val, table.unpack(sp.color_range))
+            color = grad:color_cont(val)
           end
 
           pixel:put(color)

@@ -24,6 +24,15 @@ local function clamp(min, max, v)
   return math.max(min, math.min(max, v))
 end
 
+local function color_grad_given(t, from, to)
+  return Color {
+    r = lerp(from.red, to.red, t),
+    g = lerp(from.green, to.green, t),
+    b = lerp(from.blue, to.blue, t),
+    a = lerp(from.alpha, to.alpha, t)
+  }
+end
+
 local function color_grad(t, ...)
   local arg = { ... }
 
@@ -42,15 +51,7 @@ local function color_grad(t, ...)
   -- get adjusted t between the two color indices
   local adj_t = (t * (#arg - 1)) - (from - 1) -- adjust for +1 index :)
 
-  from = arg[from]
-  to = arg[to]
-
-  return Color {
-    r = lerp(from.red, to.red, adj_t),
-    g = lerp(from.green, to.green, adj_t),
-    b = lerp(from.blue, to.blue, adj_t),
-    a = lerp(from.alpha, to.alpha, adj_t)
-  }
+  return color_grad_given(adj_t, arg[from], arg[to])
 end
 
 local function color_grad_fixed(t, ...)
@@ -84,6 +85,28 @@ local function dump(o)
   end
 end
 
+local function cat(...)
+  local args = { ... }
+  local tab = { }
+
+  for i=1,#args do
+    for k,v in pairs(args[i]) do
+      tab[k] = v
+    end
+  end
+
+  return tab
+end
+
+local function flip(arr)
+  local flipped = { }
+  local last = #arr
+  for i,v in ipairs(arr) do
+    flipped[last-(i-1)] = v
+  end
+  return flipped
+end
+
 local function set_default(table, defs)
   local mt = { __index = function(_, key) return defs[key] end }
   setmetatable(table, mt)
@@ -97,6 +120,14 @@ local function get_keys(t)
   end
 
   return keys
+end
+
+-- returns nil if not found
+local function find(arr, to_find)
+  for i,v in ipairs(arr) do
+    if v == to_find then return i end
+  end
+  return nil
 end
 
 local function sum(arr)
@@ -439,13 +470,17 @@ return {
   clamp = clamp,
 
   color_grad = color_grad,
+  color_grad_given = color_grad_given,
   color_grad_fixed = color_grad_fixed,
 
   loop = loop,
   id = id,
   dump = dump,
+  cat = cat,
+  flip = flip,
   set_default = set_default,
   get_keys = get_keys,
+  find = find,
 
   mean = mean,
   sum = sum,
