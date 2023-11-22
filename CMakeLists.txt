@@ -28,12 +28,23 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # force MSVC to conform to standard preprocessor, otherwise recursive macro used in worley for
   # generic test cases breaks.
   add_compile_options(/Zc:preprocessor)
+  # because stdc++17 for MSVC cannot handle the following fold expression in template declaration:
+  #  template<typename TT=T, typename... Args,
+  #      std::enable_if_t<
+  #          std::is_constructible<T, TT>::value &&
+  #          (std::is_constructible<T, Args>::value && ...) &&
+  #          !std::is_same<std::decay_t<TT>, vec>::value,
+  #          int
+  #      > = false
+  #  >
+  add_compile_options(/std:c++latest)
 endif()
 
 add_subdirectory(external)
 add_subdirectory(src)
 
 if(NOT EXCLUDE_TESTS)
+  enable_testing()
   add_subdirectory(tests)
 endif()
 

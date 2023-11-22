@@ -8,6 +8,7 @@
 #include "larray.h"
 #include "worley.h"
 #include "math_utils.h"
+#include "smaa.h"
 
 static int l_print(lua_State* L) {
   std::cout << "Hello, World!" << std::endl;
@@ -94,6 +95,7 @@ static int l_worley(lua_State* L) {
 static const struct luaL_Reg mylib[] = {
   {"print", l_print},
   {"sum", l_sum},
+  {"SMAA", l_SMAA},
   {nullptr, nullptr}
 };
 

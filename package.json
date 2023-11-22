@@ -2,10 +2,10 @@
     "name": "noise-scripts",
     "displayName": "Noise",
     "description": "Various noise generators",
-    "version": "0.3",
+    "version": "0.4",
     "author": { "name": "",
                 "email": "",
-                "url": "" },
+                "url": "https://github.com/cartier1288" },
     "contributors": [ ],
     "publisher": "",
     "license": "MIT",
@@ -13,6 +13,9 @@
     "contributes": {
       "scripts": [
           { "path": "./noise-plugin.lua" }
+      ],
+      "keys": [
+        { "id": "noise-keys", "path": "./noise-keys.aseprite-keys" }
       ]
     }
   }

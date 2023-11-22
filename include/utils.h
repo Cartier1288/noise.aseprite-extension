@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <typeinfo>
 #include <utility>
+#include <vector>
 
 // humbly borrowed from:
 // https://artificial-mind.net/blog/2020/10/31/constexpr-for
@@ -108,4 +109,15 @@ void try_get_num_field(lua_State* L, T& store, int idx, int stack,
     store = luaL_checknumber(L, stack);
     lua_pop(L, 1);
   }
+}
+
+template<typename T>
+std::vector<T> try_load_array(lua_State* L, int stack, size_t start, size_t end) {
+  std::vector<T> arr(end-start);
+  for(size_t i = start; i < end; i++) {
+    lua_geti(L, stack, i);
+    arr[i-start] = lua_tonumber(L, -1);
+    lua_pop(L, 1);
+  }
+  return arr;
 }

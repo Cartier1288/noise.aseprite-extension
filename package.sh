@@ -17,4 +17,4 @@ if [ -x "$(command -v zip)" ]; then
 fi
 
 ${ARCHIVER} ${NOISE_PACKAGE_NAME}.${EXT} "./noise-plugin.lua" "./package.json" \
-	"./scripts" "./bin"
+	"./noise-keys.aseprite-keys" "./scripts" "./bin" 

@@ -355,6 +355,11 @@ local function rnpoisson(mu, n)
   return rs
 end
 
+local sqrt2pi = math.sqrt(2*math.pi)
+local function pgauss(x, mu, sigma)  
+  return (1/(sigma * sqrt2pi)) * math.exp(-0.5 * ((x-mu)/sigma)^2)
+end
+
 local function less(x, y)
   return x < y
 end
@@ -502,6 +507,7 @@ return {
   rgamma_i = rgamma_i,
   rpoisson = rpoisson,
   rnpoisson = rnpoisson,
+  pgauss = pgauss,
 
   timer_start = timer_start,
   timer_start_ms = timer_start_ms,

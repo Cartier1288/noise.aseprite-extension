@@ -40,6 +40,9 @@ struct vector3 {
     VEC_OP(-)
     SCALAR_OP(-, double)
 
+#undef VEC_OP
+#undef SCALAR_OP
+
     bool operator==(const vector3& other) const {
         return x==other.x && y==other.y && z==other.z;
     }

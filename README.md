@@ -1,6 +1,7 @@
 # noise.aseprite-extension
 
-This plugin is meant to enhance aseprite with various pseudo-random noise generation methods.
+This plugin is meant to enhance aseprite with various pseudo-random noise generation methods and a
+few extra effects (e.g., anti-aliasing).
 
 ## Acknowledgements
 
@@ -19,11 +20,12 @@ a plugin for the respective software, I hope this is alright.
 
 ## Noise Method Support
 
-1. "Dot" noise. I don't know an official name, but this refers simply to randomly placing dots of
-   the foreground color or current brush around the canvas with a certain chance per pixel.
+1. "Dot" noise. I don't know an official name, but this refers simply to painting dots on the canvas 
+   with a certain chance per pixel with a color picked randomly from a selection or a premade brush.
 2. Perlin noise. The quintessential pseudo-random noise function.
     * +Animation.
     * +Tiling.
+    * +Octaves/Layering.
     ![Perlin Noise Example](examples/perlin-shortened.gif)
 3. Voronoi noise.
     * +Animation.
@@ -33,24 +35,41 @@ a plugin for the respective software, I hope this is alright.
     * +Tiling.
     ![Worley Noise Example](examples/worley-shortened.gif)
 
+See `examples` for more applications of these functions. More examples coming soon.
+
+## Extras
+
+1. Gaussian Blur.
+2. SMAA **\*** (Subpixel Morphological Anti-Aliasing).
+   * Useful for removing any jagged edges seen in the above noise methods, or generally for
+     anti-aliasing pixel art.
+
+**\*** all methods with a **\*** next to them require the dynamic library to function properly.
+
 ## Usage
 
 The plugin dialog can be invoked by going to `Edit > Generate > Generate Noise`. From there the 
 method of noise can be selected, and custom method settings can be selected by clicking the `Method
 Options` button to open a separate options menu.
 
-Note: many method options relating to tiling require that respective lengths (e.g., movement for
-Worley animation) be factors of one another.
-
 ## Animation
 
 All methods except dot noise currently support some form of animation.[^1]
+
+For tiling to work properly many method parameters require that lengths (e.g., movement 
+for Worley animation) be factors of one another. Future updates will hopefully make it clearer which
+parameters rely on each other with tiling selected.
 
 [^1]: This is only true if you have dynamic libraries enabled and installed in the package folder.
 The current implementation of Worley noise for Lua is very slow so it only uses 2D generation,
 making animation impossible for the pure Lua plugin as of now.
 
 ## Installation
+
+This plugin is tested on **aseprite v1.3-rc6-x64**, and relies on fairly recent aseprite updates to
+scripting. It does _not_ work with the stable v1.2.40 release on Steam. See 
+[this issue](https://github.com/Cartier1288/noise.aseprite-extension/issues/1#issuecomment-1822001317)
+for more info and how to easily upgrade Aseprite to the beta release on Steam.
 
 ```bash
 # clone the repository and load any of its dependencies
@@ -71,12 +90,13 @@ cd ..
 ./package.sh
 ```
 
-If your system has `.aseprite-extension` registered to aseprite, you should just be able to open the
-file and have it automatically add the extension for you.
+If your system has `.aseprite-extension` extensions registered to aseprite, you should just be able
+to open the file that running `package.sh` created and have it automatically add the extension for 
+you.
 
 Otherwise, open the generated `noise.aseprite-extension` package from within aseprite by going to
-`Edit > Preferences > Extensions`, clicking on `Add Extension` and navigating to the package and
-opening it.
+`Edit > Preferences > Extensions`, clicking on `Add Extension` and navigating to the package file 
+and selecting it.
 
 ### Dynamic Linking Problems
 
@@ -94,7 +114,7 @@ target_compile_definitions(lua PUBLIC LUA_USE_DLOPEN)
 target_compile_definitions(lauxlib PUBLIC LUA_USE_DLOPEN)
 target_compile_definitions(lualib PUBLIC LUA_USE_DLOPEN)
 ```
-and then compoling again.
+and then compiling again.
 
 Technically, this package can be used without the dynamic library extension. Worley noise will be
 violently slow and lack animation, but it does avoid the extra steps of having to compile it.

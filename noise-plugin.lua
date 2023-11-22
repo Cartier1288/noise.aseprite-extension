@@ -5,11 +5,15 @@ local function fix_path()
     adjusted = true;
 
     local pwd = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]]
-    package.path = pwd .. "?.lua;" .. package.path
-    package.cpath = pwd .. "bin/?.so;" .. package.cpath
-    package.cpath = pwd .. "bin/?.a;" .. package.cpath
-    package.cpath = pwd .. "bin/?.dll;" .. package.cpath
-    package.cpath = pwd .. "bin/?.dylib;" .. package.cpath
+    local prefixes = { "", "scripts/" }
+    for _,prefix in ipairs(prefixes) do
+      package.path = pwd .. prefix .. "?.lua;" .. package.path
+      package.path = pwd .. prefix .. "?/init.lua;" .. package.path
+      package.cpath = pwd .. prefix .. "bin/?.so;" .. package.cpath
+      package.cpath = pwd .. prefix .. "bin/?.a;" .. package.cpath
+      package.cpath = pwd .. prefix .. "bin/?.dll;" .. package.cpath
+      package.cpath = pwd .. prefix .. "bin/?.dylib;" .. package.cpath
+    end
   end
 end
 
@@ -19,7 +23,7 @@ function init(plugin)
   local group = "edit_generate"
 
   -- reset last command
-  plugin.preferences.last_command = nil
+  plugin.preferences.last_command = { }
 
   plugin:newMenuGroup {
     id = group,
@@ -37,9 +41,9 @@ function init(plugin)
       -- requiring here means that error messages that would have been on plugin startup can
       -- be recorded
       local noise = require("scripts.noise")
-      local opts, mopts = noise.noise_try(plugin.preferences)
+      local opts, mopts = noise.noise_try({ last_command = plugin.preferences.last_command.noise })
 
-      plugin.preferences.last_command = { opts=opts, mopts=mopts, sprite=app.sprite }
+      plugin.preferences.last_command.noise = { opts=opts, mopts=mopts, sprite=app.sprite, type="noise" }
     end
   }
 
@@ -48,7 +52,7 @@ function init(plugin)
     title = "Repeat Last Noise",
     group = group,
     onclick = function()
-      local lc = plugin.preferences.last_command
+      local lc = plugin.preferences.last_command.noise
       if lc then
         if lc.sprite ~= app.sprite then
           app.alert("Error! Cannot repeat noise on a different sprite.")
@@ -64,6 +68,23 @@ function init(plugin)
       else
         app.alert("Warning! No noise to repeat.")
       end
+    end
+  }
+
+  plugin:newCommand {
+    id = "antialias",
+    title = "Anti-alias",
+    group = group,
+    onclick = function()
+      fix_path()
+
+      -- requiring here means that error messages that would have been on plugin startup can
+      -- be recorded
+      local aa = require("aa")
+
+      local opts, mopts = aa.try_aa({ last_command = plugin.preferences.last_command.aa })
+
+      plugin.preferences.last_command.aa = { opts=opts, mopts=mopts, sprite=app.sprite }
     end
   }
 

@@ -14,6 +14,9 @@ struct larray {
 
     larray(size_t size) : size(size) {}
 
+    template<typename TT>
+    void from(std::vector<TT> const& other);
+
     // gets assigned directly to larray{}
     static int lnew(lua_State* L);
     static int gc(lua_State* L);
@@ -24,6 +27,15 @@ struct larray {
 
     static void register_class(lua_State* L);
 };
+
+template<typename T>
+template<typename TT>
+void larray<T>::from(std::vector<TT> const& other) {
+    assert(other.size() == size);
+    //memcpy(values, other.data(), other.size() * sizeof(TT));
+    for(size_t i = 0; i < other.size(); i++)
+        values[i] = other[i];
+}
 
 template<typename T>
 int larray<T>::lnew(lua_State* L) {

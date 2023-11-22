@@ -1,4 +1,5 @@
 local utils = require("utils")
+local IBuffer = require("ibuffer")
 local Gradient = require("gradient")
 
 local SpritePainter = { }
@@ -27,8 +28,6 @@ function SpritePainter:new(opts) -- noexcept(false)
     -- alphas
 
     this:load_sprite_data()
-    this:bind_canvas_functions()
-    this:load_sprite_alpha()
     this:init_color_grad()
 
     return this
@@ -43,7 +42,7 @@ function SpritePainter:_get_color_uint(val)
 end
 
 function SpritePainter:_get_alpha_index(idx)
-    if idx == self.image.spec.transparentColor then
+    if idx == self.sprite.spec.transparentColor then
         return 0
     end
 
@@ -72,19 +71,22 @@ function SpritePainter:load_sprite_data()
     if not self.sprite then
         error(app.alert("no active sprite"))
     end
-
-    if self.use_active_layer then
-        self:get_current_frame()
-    else
-        self.layer = self.sprite:newLayer()
-        self:load_frame(1)
-    end
-    self.frame = 1
-
     self.palette = self.sprite.palettes[1]
 
     self.width = self.sprite.width
     self.height = self.sprite.height
+
+    self.frame = 1
+
+    self:bind_canvas_functions()
+
+    if self.use_active_layer then
+        self.layer = app.layer
+    else
+        self.layer = self.sprite:newLayer()
+    end
+
+    self:load_frame(self.frame)
 end
 
 function SpritePainter:load_sprite_alpha()
@@ -122,7 +124,7 @@ end
 function SpritePainter:bind_canvas_functions()
     -- depending on the color mode, val may be either an integer representing the color itself, or
     -- an index into the palette
-    if self.image.colorMode == ColorMode.INDEXED then
+    if self.sprite.colorMode == ColorMode.INDEXED then
         self.get_color = self._get_color_index
         self.get_alpha = self._get_alpha_index
     else
@@ -141,6 +143,17 @@ function SpritePainter:init_color_grad()
   end
 end
 
+function SpritePainter:get_active_frames()
+    local frames = { }
+    local nframes = #self.sprite.frames
+    for idx=1,nframes do
+        if self.layer:cel(idx) then
+            table.insert(frames, idx)
+        end
+    end
+    return frames
+end
+
 function SpritePainter:get_current_frame()
     self.layer = app.layer
     self.cel = app.cel
@@ -151,15 +164,39 @@ function SpritePainter:get_current_frame()
 end
 
 function SpritePainter:load_frame(idx)
+    local pos
+    local image = nil
+
     if idx > #self.sprite.frames then
         self.sprite:newEmptyFrame(idx)
+    elseif self.use_active_layer then
+        self.cel = self.layer:cel(idx)
+        -- see if the cel we want actually exists
+        if self.cel then
+            -- clone here, since when a new cel/image is created the original cel/image gets 
+            -- deleted
+            image = self.cel.image:clone()
+            pos = self.cel.position
+        end
     end
 
+    -- always create a fresh cel, and just copy over an image if we need it
+    -- this allows undo/redo
     self.cel = self.sprite:newCel(self.layer, idx)
-    self.image = self.cel.image;
+    self.image = self.cel.image
+
+    if image then
+        self.image:drawImage(image, pos)
+        -- todo: consider a good default for loading alpha, in this way the alpha of the last viable
+        -- frame propagates to all extra frames
+        self:load_sprite_alpha()
+    end
 end
 
 function SpritePainter:put_pixel(x, y, color)
+    local xadj = x - self.cel.position.x
+    local yadj = y - self.cel.position.y
+
     if self.lock_alpha then
         -- TODO: turn this pattern into its own "mask" system, where we can just apply masks in some
         -- order on top of a given color
@@ -170,7 +207,47 @@ function SpritePainter:put_pixel(x, y, color)
             alpha = self.alphas[x][y]
         }
     end
-    self.image:drawPixel(x, y, color)
+    self.image:drawPixel(xadj, yadj, color)
+end
+
+function SpritePainter:to_buffer()
+    local buffer = IBuffer:new(self.width, self.height, 4, 0)
+
+    for el in buffer:iterate(0) do
+        local color = self:get_color_at(el.x, el.y)
+        el:put(0, color.red)
+        el:put(1, color.green)
+        el:put(2, color.blue)
+        el:put(3, color.alpha)
+    end
+
+    return buffer
+end
+
+function SpritePainter:from_buffer(buffer)
+    for el in buffer:iterate(0) do
+        self:put_pixel(el.x, el.y,
+            Color{
+                r = el:get(0),
+                g = el:get(1),
+                b = el:get(2),
+                a = el:get(3),
+            }
+        )
+    end
+end
+
+function SpritePainter:from_arr(arr)
+    local idx = 1
+    for pixel in self:pixels() do
+        pixel:put(Color{
+            r = arr[idx + 0],
+            g = arr[idx + 1],
+            b = arr[idx + 2],
+            a = arr[idx + 3],
+        })
+        idx = idx + 4
+    end
 end
 
 -- pixel iterator
@@ -179,8 +256,11 @@ function SpritePainter:pixels()
 
     local sp = self
     local pixel = {
-        x=-1, y=0, idx=0
+        x=-1, y=0, idx=i
     }
+    function pixel:get()
+        return sp:get_color_at(self.x, self.y)
+    end
     function pixel:put(color)
         sp:put_pixel(self.x, self.y, color)
     end
@@ -228,6 +308,25 @@ function SpritePainter:animate(frames)
             pixel.frame = frame
             return pixel
         end
+    end
+end
+
+-- iterates over active frames
+function SpritePainter:paint_over(uframes)
+    -- todo the frame part here should probably just be over all frames by default, and the caller
+    -- can just supply sp:get_active_frames if that is preferable...
+    local frames = uframes or self:get_active_frames()
+    local info = { idx=0, frame = nil }
+
+    return function()
+        info.idx = info.idx + 1
+
+        if info.idx > #frames then return nil end
+
+        info.frame = frames[info.idx]
+        self:load_frame(info.frame)
+
+        return info
     end
 end
 
