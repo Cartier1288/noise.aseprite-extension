@@ -81,5 +81,5 @@ int main(int argc, char** argv) {
     std::cout << movcd << std::endl;
     assert(movcd[0] == 123.0f && movcd[1] == 2.0f && movcd[2] == 123.0f);
 
-    return 1;
+    return 0;
 }

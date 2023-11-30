@@ -97,14 +97,9 @@ public:
     }
 
     inline T operator[](size_t idx) const { 
-        // todo remove this when done debugging lol
-        if(idx >= N) {
-            assert(idx < N);
-        } return vals[idx]; }
+        assert(idx < N); return vals[idx]; }
     inline T& operator[](size_t idx) { 
-        if(idx >= N) {
-            assert(idx < N); 
-        }return vals[idx]; }
+        assert(idx < N);return vals[idx]; }
 
 
 #define SCALAR_OP(op)                                            \

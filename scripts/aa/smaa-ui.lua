@@ -1,7 +1,6 @@
 local utils = require("utils")
 
 local SMAA_defs = {
-    radius = 3,
 }
 
 local function SMAA_dlog(parent, defs)
@@ -9,7 +8,7 @@ local function SMAA_dlog(parent, defs)
     title = "SMAA Options",
     parent = parent
   }
-  dlog:number { id = "radius", label = "Radius", decimals=0, text = tostring(defs.radius) }
+  dlog:label { id = "label", label = "No parameters (yet)" }
       :button { id = "ok", text = "OK", focus = true }
       :button { id = "cancel", text = "Cancel" }
       :show()
