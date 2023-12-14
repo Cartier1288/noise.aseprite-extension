@@ -1,11 +1,11 @@
 #include "worley.h"
 
+#include "isort.h"
 #include "larray.h"
 #include "lattice3.h"
+#include "macro_utils.h"
 #include "utils.h"
 #include "vector3.h"
-#include "macro_utils.h"
-#include "isort.h"
 
 #include <assert.h>
 #include <cmath>
@@ -34,17 +34,16 @@ static unsigned int gen_points(unsigned int seed, double mean, double min,
   return d(gen);
 }
 
-template<size_t N>
-static inline void calc_dists(distance_func_t distf,
-                              isort<double, N>& dists, dvec3& center,
-                              points_t& points) {
+template <size_t N>
+static inline void calc_dists(distance_func_t distf, isort<double, N>& dists,
+                              dvec3& center, points_t& points) {
   for (dvec3 const& v : points) {
     double d = distf(v.x, v.y, v.z, center.x, center.y, center.z);
     dists.insert(d);
   }
 }
 
-template<size_t N>
+template <size_t N>
 void Worley::compute_frame(cache_t& cache, double z, double values[]) const {
   /* initialize random distributions  */
   std::mt19937 gen;
@@ -68,8 +67,9 @@ void Worley::compute_frame(cache_t& cache, double z, double values[]) const {
       center.x = x;
       isort<double, N> dists;
 
-      // test point does two things: it caches points assigned to each lattice cell, and then it
-      // calculates the distance between pixel x,y,z and the nearest points
+      // test point does two things: it caches points assigned to each lattice
+      // cell, and then it calculates the distance between pixel x,y,z and the
+      // nearest points
       auto test_point = [&](dvec3 const& cell) {
         if (!cache.count(cell)) { // generate points, since we couldn't find
                                   // them in the cache
@@ -78,7 +78,8 @@ void Worley::compute_frame(cache_t& cache, double z, double values[]) const {
 
           auto grid_seed = ltc.get_seed(cell.x, cell.y, cell.z);
           gen.seed(grid_seed); // set seed using lattice
-          d.reset(); u.reset();
+          d.reset();
+          u.reset();
 
           size_t npoints = d(gen); // generate # of points using poisson
 
@@ -138,14 +139,12 @@ void Worley::compute_frame(cache_t& cache, double z, double values[]) const {
       */
 
       auto& vals = dists.get_values();
-      constexpr_for<0, N, 1>([&](auto i) {
-        values[idx*N+i] = vals[i];
-      });
+      constexpr_for<0, N, 1>([&](auto i) { values[idx * N + i] = vals[i]; });
     }
   }
 }
 
-template<size_t N>
+template <size_t N>
 Worley::result_t Worley::compute_frame(cache_t& cache, double z) const {
   result_t values(get_result_size());
 
@@ -247,10 +246,10 @@ int Worley::lnew(lua_State* L) {
 #undef GET_INTEGER
 #undef GET_NUMBER
 
-#define NTH_CASE(i, _) \
-  case i: { \
-      worley->compute_frame<i>(cache, z, arr->values); \
-      break; \
+#define NTH_CASE(i, _)                                                         \
+  case i: {                                                                    \
+    worley->compute_frame<i>(cache, z, arr->values);                           \
+    break;                                                                     \
   }
 
 int Worley::compute(lua_State* L) {
@@ -286,16 +285,15 @@ int Worley::compute(lua_State* L) {
             "unexpected error, array size differs from Worley");
 
     // compute directly on top of the ldarray values
-    switch(worley->n) {
-        // TODO: if WORLEY_MAX_N is ever set > 9, then macro_utils will need to be expanded to
-        // actually account for more "recursion"
-        EVAL(REPEAT(WORLEY_MAX_N, NTH_CASE, ~))
-        default:
-            std::string err =
-                  std::string("unsupported Worley `n` given, 0 < n <= ")
-                + std::to_string(WORLEY_MAX_N);
-            luaL_error(L, err.c_str());
-            return 0;
+    switch (worley->n) {
+      // TODO: if WORLEY_MAX_N is ever set > 9, then macro_utils will need to be
+      // expanded to actually account for more "recursion"
+      EVAL(REPEAT(WORLEY_MAX_N, NTH_CASE, ~))
+    default:
+      std::string err = std::string("unsupported Worley `n` given, 0 < n <= ") +
+                        std::to_string(WORLEY_MAX_N);
+      luaL_error(L, err.c_str());
+      return 0;
     }
 
     // frames[frame+1] = arr

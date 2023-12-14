@@ -13,3 +13,7 @@ contributions for these if you're interested.
    names. The purpose being easy renaming for creating a separate dev package.
 5. Link method parameters based on dependency for tiling so that warnings can be issued as well as
    suggested values.
+6. Maybe add a thread primitive to Lua as just a sort of wrapper for a C++ thread. Probably better
+   to just rewrite concurrent code in C++, but could be useful where this isn't desirable.
+   Also a valid option for rendering previews (?)
+7. Add C++ version of Perlin noise.
